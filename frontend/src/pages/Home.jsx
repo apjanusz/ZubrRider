@@ -1,23 +1,22 @@
 import React from "react";
-import {Link} from "react-router-dom";
+import { Link } from "react-router-dom";
 
-// DANE TESTOWE (MOCK DATA) - żeby strona nie była pusta
-// W przyszłości zastąpimy to pobieraniem z API (api.get("/rides/"))
+// DANE TESTOWE (MOCK DATA)
 const DUMMIES = [
     {
         id: 1,
         driver: "Janusz",
-        from: "Dom Dziejmów",
-        to: "Szpital w Choroszczy",
+        from: "Białystok",
+        to: "Choroszcz",
         date: "2026-12-12 08:00",
-        price: "5 PLN",
+        price: "15 PLN",
         seats: 2,
         car: "Volkswagen Passat"
     },
-        {
+    {
         id: 2,
-        driver: "Kaorl",
-        from: "Szpital w Choroszczy",
+        driver: "Karol",
+        from: "Choroszcz",
         to: "Biedronka",
         date: "2026-01-02 12:30",
         price: "50 PLN",
@@ -31,8 +30,7 @@ function Home() {
         <div className="flex flex-col gap-8">
 
             <div className="bg-zubr-dark rounded-2xl p-10 text-white shadow-xl relative overflow-hidden">
-                <div
-                    className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-green-700 rounded-full opacity-50 blur-3xl"></div>
+                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-green-700 rounded-full opacity-50 blur-3xl"></div>
 
                 <div className="relative z-10 max-w-2xl">
                     <h1 className="text-4xl md:text-5xl font-bold mb-4">
@@ -55,7 +53,7 @@ function Home() {
                 </div>
             </div>
 
-            {/* wyszukiwanie */}
+            {/* Wyszukiwanie (wizualne) */}
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 -mt-16 mx-4 md:mx-0 relative z-20">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
@@ -80,7 +78,7 @@ function Home() {
                 </div>
             </div>
 
-            {/* lista przejazdow */}
+            {/* Lista przejazdów */}
             <div id="rides" className="mt-4">
                 <h2 className="text-2xl font-bold text-zubr-dark mb-6 flex items-center gap-2">
                     Dostępne przejazdy
@@ -91,34 +89,27 @@ function Home() {
                         <div key={ride.id}
                              className="bg-white rounded-xl shadow-md hover:shadow-xl transition duration-300 border border-gray-100 overflow-hidden group">
 
-                            {/* trasa */}
                             <div className="p-5 border-b border-gray-100 bg-gray-50">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex flex-col">
-                                        <span
-                                            className="text-xs font-bold text-gray-500 uppercase tracking-wide">Start</span>
+                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Start</span>
                                         <span className="font-bold text-gray-800 text-lg">{ride.from}</span>
                                     </div>
                                 </div>
-
-                                {/* czas */}
                                 <div className="flex items-center gap-2 my-2 opacity-60">
                                     <div className="h-8 w-0.5 bg-gray-300 mx-1"></div>
                                     <span className="text-sm">⬇️ Czas podróży: ok. 2h</span>
                                 </div>
-
                                 <div className="flex flex-col mt-2">
                                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Cel</span>
                                     <span className="font-bold text-gray-800 text-lg">{ride.to}</span>
                                 </div>
                             </div>
 
-                            {/* detaile */}
                             <div className="p-5">
                                 <div className="flex justify-between items-center mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div
-                                            className="w-10 h-10 rounded-full bg-zubr-light flex items-center justify-center text-zubr-dark font-bold">
+                                        <div className="w-10 h-10 rounded-full bg-zubr-light flex items-center justify-center text-zubr-dark font-bold">
                                             {ride.driver[0]}
                                         </div>
                                         <div>
@@ -130,19 +121,19 @@ function Home() {
                                         <span className="block text-2xl font-bold text-zubr-dark">{ride.price}</span>
                                     </div>
                                 </div>
-
-                                <div
-                                    className="flex justify-between text-sm text-gray-600 border-t border-gray-100 pt-3">
+                                <div className="flex justify-between text-sm text-gray-600 border-t border-gray-100 pt-3">
                                     <span>{ride.date}</span>
                                     <span>Wolne: {ride.seats}</span>
                                 </div>
                             </div>
 
-                            {/* przycisk */}
-                            <div
-                                className="bg-zubr-dark text-white text-center py-2 font-bold cursor-pointer hover:bg-green-800 transition">
+                            {/* ZMIANA: Link zamiast div */}
+                            <Link 
+                                to={`/ride/${ride.id}`}
+                                className="block bg-zubr-dark text-white text-center py-3 font-bold cursor-pointer hover:bg-green-800 transition"
+                            >
                                 Zobacz szczegóły
-                            </div>
+                            </Link>
                         </div>
                     ))}
                 </div>

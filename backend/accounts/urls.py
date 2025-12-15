@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView
+from .views import RegisterView, UserProfileView, DriverProfileView, MyCarsView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -7,14 +7,15 @@ from rest_framework_simplejwt.views import (
 
 urlpatterns = [
     # rejestracja
-    # POST /api/accounts/register/
-    path('register/', RegisterView.as_view(), name='auth_register'),
-
+    path("register/", RegisterView.as_view(), name="auth_register"),
     # logowanie
-    # POST /api/accounts/token/
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-
+    path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     # token reset
-    # POST /api/accounts/token/refresh/
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    # profil prywatny
+    path("profile/", UserProfileView.as_view(), name="user_profile"),
+    # profil kierowcy (publiczny)
+    path("driver/<int:pk>/", DriverProfileView.as_view(), name="driver_profile"),
+    # moje samochody (do listy rozwijanej)
+    path("my-cars/", MyCarsView.as_view(), name="my_cars"),
 ]
