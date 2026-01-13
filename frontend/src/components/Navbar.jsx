@@ -25,7 +25,9 @@ function Navbar() {
     const links = isAuthenticated
         ? [
             { name: "Szukaj", path: "/" },
-            { name: "Dodaj Przejazd", path: "/publish-ride" },
+            { name: "Dodaj", path: "/publish-ride" },      // Zmieniona nazwa
+            { name: "Moje Przejazdy", path: "/my-rides" }, // NOWY LINK
+            { name: "Profil", path: "/profile" },          // Zmieniona nazwa
             { name: "Wyloguj", path: "#logout", action: handleLogout },
         ]
         : [
@@ -66,7 +68,6 @@ function Navbar() {
                                     className={cn(
                                         "relative z-10 px-6 py-3 text-base font-medium transition-colors duration-200 block whitespace-nowrap",
                                         isActive ? "text-zubr-dark" : "text-gray-200",
-                                        // Kolory tekstu przy hoverze
                                         isHovered && !isActive && isLogout ? "text-black" : "",
                                         isHovered && !isActive && !isLogout ? "text-white" : ""
                                     )}
@@ -88,7 +89,6 @@ function Navbar() {
 
                             {/* TŁO (ANIMACJE) */}
                             <AnimatePresence>
-                                {/* 1. Aktywne Tło (Złote) - to zostaje, pokazuje gdzie jesteś */}
                                 {isActive && (
                                     <motion.div
                                         layoutId="active-pill"
@@ -97,8 +97,6 @@ function Navbar() {
                                     />
                                 )}
 
-                                {/* 2. Hover Tło - TERAZ BEZ PRZESKAKIWANIA */}
-                                {/* Usunąłem layoutId="hover-pill", więc tło po prostu się pojawia i znika */}
                                 {isHovered && !isActive && (
                                     <motion.div
                                         className={cn(
