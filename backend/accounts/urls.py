@@ -13,7 +13,7 @@ urlpatterns = [
     # token reset
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     # profil prywatny
-    path("profile/", UserProfileView.as_view(), name="user_profile"),
+    path("me/", UserProfileView.as_view(), name="user_profile"),
     # profil kierowcy (publiczny)
     path("driver/<int:pk>/", DriverProfileView.as_view(), name="driver_profile"),
     # moje samochody (do listy rozwijanej)
