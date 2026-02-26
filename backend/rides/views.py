@@ -1,10 +1,8 @@
-from rest_framework import generics, views, status
+from rest_framework import generics, views
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from .models import Ride
 from .serializers import RideDetailSerializer, RideCreateSerializer
-
-# Create your views here.
 
 
 class RideDetailView(generics.RetrieveAPIView):
@@ -19,6 +17,16 @@ class RideCreateView(generics.CreateAPIView):
     serializer_class = RideCreateSerializer
     permission_classes = [IsAuthenticated]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            print("❌ SERIALIZER ERRORS:", serializer.errors)
+            return Response(serializer.errors, status=400)
+
+        self.perform_create(serializer)
+        return Response(serializer.data, status=201)
+
+
 
 class MyRidesView(views.APIView):
     permission_classes = [IsAuthenticated]
@@ -26,11 +34,7 @@ class MyRidesView(views.APIView):
     def get(self, request):
         user = request.user
 
-        # 1. Przejazdy, gdzie jestem kierowcą
         driver_rides = Ride.objects.filter(driver=user).order_by("-departure_date")
-
-        # 2. Przejazdy, gdzie jestem pasażerem (mam rezerwację)
-        # Relacja 'bookings' w modelu Ride prowadzi do modelu Booking, który ma pole 'passenger'
         passenger_rides = (
             Ride.objects.filter(bookings__passenger=user)
             .distinct()

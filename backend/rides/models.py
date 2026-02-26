@@ -15,7 +15,8 @@ class Ride(models.Model):
     departure_time = models.TimeField()
     cost_per_passenger = models.DecimalField(max_digits=10, decimal_places=2)
     available_seats = models.IntegerField()
-    status = models.CharField(max_length=20)
+    status = models.CharField(max_length=20, default="active")
+
 
     def __str__(self):
         return f"{self.driver } {self.car} {self.start_location}"
