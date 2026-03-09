@@ -122,21 +122,37 @@ function RideDetails() {
                 </div>
 
                 {/* Prawa kolumna: Rezerwacja */}
+             {/* Prawa kolumna: Rezerwacja */}
                 <div className="md:col-span-1">
                     <div className="bg-white p-6 rounded-xl shadow-md sticky top-24">
                         <h3 className="text-xl font-bold text-gray-800 mb-4">Podsumowanie</h3>
-                        
+
                         <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                             <span className="text-gray-600">Dostępne miejsca</span>
                             <span className="font-bold text-green-600">{ride.available_seats}</span>
                         </div>
 
-                        <button 
-                            className="w-full bg-zubr-gold text-zubr-dark py-3 rounded-lg font-bold text-lg hover:bg-yellow-400 transition shadow-md"
-                            onClick={() => alert("Funkcja rezerwacji w budowie!")}
-                        >
-                            Zarezerwuj miejsce
-                        </button>
+                        {ride.available_seats > 0 ? (
+                            <button
+                                className="w-full bg-zubr-gold text-zubr-dark py-3 rounded-lg font-bold text-lg hover:bg-yellow-400 transition shadow-md"
+                                onClick={async () => {
+                                    try {
+                                        await api.post(`/api/rides/${ride.id}/book/`);
+                                        alert("Udało się! Zarezerwowałeś przejazd.");
+                                        navigate("/my-rides"); // Przenosi do moich przejazdów
+                                    } catch (err) {
+                                        const errorMsg = err.response?.data?.error || "Wystąpił błąd podczas rezerwacji.";
+                                        alert(errorMsg);
+                                    }
+                                }}
+                            >
+                                Zarezerwuj miejsce
+                            </button>
+                        ) : (
+                            <button disabled className="w-full bg-gray-300 text-gray-600 py-3 rounded-lg font-bold text-lg cursor-not-allowed">
+                                Brak wolnych miejsc
+                            </button>
+                        )}
                         <p className="text-xs text-center text-gray-400 mt-3">
                             Płatność gotówką u kierowcy lub przez portfel.
                         </p>

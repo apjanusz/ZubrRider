@@ -29,9 +29,7 @@ function App() {
         <Route element={<Layout />}>
 
           {/* TRASY WYMAGAJĄCE ZALOGOWANIA */}
-          <Route path="/" element={
-              <ProtectedRoute><Home /></ProtectedRoute>
-          }/>
+
           <Route path="/profile" element={
               <ProtectedRoute><UserPage /></ProtectedRoute>
           }/>
@@ -41,8 +39,6 @@ function App() {
           <Route path="/ride/:id" element={
               <ProtectedRoute><RideDetails /></ProtectedRoute>
           }/>
-          
-          {/* NOWE TRASY */}
           <Route path="/publish-ride" element={
               <ProtectedRoute><PublishRide /></ProtectedRoute>
           }/>
@@ -51,10 +47,11 @@ function App() {
           }/>
           
           {/* TRASY PUBLICZNE */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/logout" element={<Logout />} />
-          <Route path="/register" element={<RegisterAndLogout />} />
-          <Route path="*" element={<NotFound />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/logout" element={<Logout />} />
+            <Route path="/register" element={<RegisterAndLogout />} />
+            <Route path="*" element={<NotFound />} />
+            <Route path="/" element={<Home />}/>
 
         </Route>
       </Routes>
