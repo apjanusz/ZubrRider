@@ -38,7 +38,17 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
+from rest_framework import serializers
+from django.db.models import Avg
+from .models import User, Car
+from community.models import Rating
+from rides.models import Ride
+
+
 class UserSerializer(serializers.ModelSerializer):
+    # Musisz jawnie zdefiniować to pole tutaj:
+    stats = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
@@ -55,17 +65,28 @@ class UserSerializer(serializers.ModelSerializer):
             "apt_number",
             "date_joined",
             "last_login",
+            "stats",  # Teraz to pole będzie poprawne
         ]
         read_only_fields = ["id", "email", "date_joined", "last_login"]
 
+    def get_stats(self, obj):
+        rides_count = Ride.objects.filter(driver=obj).count()
+        ratings = Rating.objects.filter(rated_user=obj)
 
-# --- NOWE SERIALIZERY DLA PROFILU KIEROWCY ---
+        avg_rating = 0
+        if ratings.exists():
+            avg_rating = round(ratings.aggregate(Avg('score'))['score__avg'], 1)
 
-
+        return {
+            "rides_count": rides_count,
+            "rating_avg": avg_rating,
+            "rating_count": ratings.count(),
+        }
 class CarSerializer(serializers.ModelSerializer):
     class Meta:
         model = Car
-        fields = ["brand", "model", "license_plate", "seats"]
+        fields = ["id", "brand", "model", "license_plate", "seats"]
+        read_only_fields = ["owner"]
 
 
 class DriverReviewSerializer(serializers.ModelSerializer):

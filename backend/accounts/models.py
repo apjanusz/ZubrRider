@@ -45,7 +45,6 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-# --- Reszta modeli bez zmian ---
 class Car(models.Model):
     owner = models.ForeignKey('User', on_delete=models.CASCADE, related_name='cars')
     brand = models.CharField(max_length=50)
