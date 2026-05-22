@@ -1,36 +1,48 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+
 import api from "../api";
+import RideMap from "../components/RideMap";
 
 function RideDetails() {
     const { id } = useParams();
-    const [ride, setRide] = useState(null);
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    // Funkcja do pobierania danych (na razie mockujemy, jeśli API zwróci błąd lub nie ma danych w bazie)
+    const [ride, setRide] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [routeData, setRouteData] = useState(null);
+    const [routeLoading, setRouteLoading] = useState(false);
+    const [routeError, setRouteError] = useState("");
+
     useEffect(() => {
         const fetchRide = async () => {
             try {
-                // Próba pobrania z API
                 const res = await api.get(`/api/rides/${id}/`);
                 setRide(res.data);
-            } catch (error) {
-                console.log("Błąd API, używam danych testowych dla demo", error);
-                
-                // MOCK DATA na wypadek braku backendu/danych
-                // To pozwala Ci testować UI bez wypełnionej bazy danych
+            } catch {
                 setRide({
-                    id: id,
+                    id,
                     driver: { id: 1, first_name: "Janusz", last_name: "Tracz", username: "tracz_janusz", rating: 4.8 },
                     car: { brand: "Volkswagen", model: "Passat", license_plate: "BI 12345", seats: 4 },
-                    start_location: { city: "Białystok", street: "Lipowa", st_number: "14" },
-                    end_location: { city: "Choroszcz", street: "Powstania Styczniowego", st_number: "1" },
+                    start_location: {
+                        city: "Białystok",
+                        street: "Lipowa",
+                        st_number: "14",
+                        latitude: 53.1325,
+                        longitude: 23.1688,
+                    },
+                    end_location: {
+                        city: "Choroszcz",
+                        street: "Powstania Styczniowego",
+                        st_number: "1",
+                        latitude: 53.1432,
+                        longitude: 22.9887,
+                    },
                     departure_date: "2026-12-12",
                     departure_time: "08:00:00",
                     cost_per_passenger: "15.00",
                     available_seats: 3,
-                    description: "Jadę spokojnie, nie palę w aucie. Zapraszam!"
+                    description: "Jadę spokojnie, nie palę w aucie. Zapraszam!",
                 });
             } finally {
                 setLoading(false);
@@ -40,13 +52,43 @@ function RideDetails() {
         fetchRide();
     }, [id]);
 
+    useEffect(() => {
+        const fetchRoute = async () => {
+            if (!ride?.start_location?.latitude || !ride?.end_location?.latitude) {
+                setRouteData(null);
+                return;
+            }
+
+            setRouteLoading(true);
+            setRouteError("");
+            try {
+                const res = await api.post("/api/maps/route/", {
+                    start: {
+                        latitude: Number(ride.start_location.latitude),
+                        longitude: Number(ride.start_location.longitude),
+                    },
+                    end: {
+                        latitude: Number(ride.end_location.latitude),
+                        longitude: Number(ride.end_location.longitude),
+                    },
+                });
+                setRouteData(res.data);
+            } catch (error) {
+                setRouteData(null);
+                setRouteError(error.response?.data?.detail || "Nie udało się wyznaczyć trasy dla tego przejazdu.");
+            } finally {
+                setRouteLoading(false);
+            }
+        };
+
+        fetchRoute();
+    }, [ride]);
+
     if (loading) return <div className="text-center mt-10">Ładowanie szczegółów przejazdu...</div>;
     if (!ride) return <div className="text-center mt-10">Nie znaleziono przejazdu.</div>;
 
     return (
         <div className="max-w-4xl mx-auto pb-12">
-            
-            {/* Nagłówek Trasy */}
             <div className="bg-white rounded-xl shadow-lg p-8 mb-6 border-l-8 border-zubr-gold">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                     <div>
@@ -69,19 +111,35 @@ function RideDetails() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                {/* Lewa kolumna: Szczegóły + Kierowca */}
                 <div className="md:col-span-2 space-y-6">
-                    
-                    {/* Mapa (Placeholder) */}
-                    <div className="bg-gray-200 rounded-xl h-64 flex items-center justify-center shadow-inner">
-                        <span className="text-gray-500 font-semibold">📍 Mapa trasy (Google Maps / Leaflet)</span>
+                    <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                        <RideMap
+                            start={ride.start_location}
+                            end={ride.end_location}
+                            geometry={routeData?.geometry}
+                            heightClassName="h-72"
+                        />
+                        <div className="flex items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 text-sm">
+                            <div className="text-gray-500">
+                                {routeLoading
+                                    ? "Wyznaczanie trasy..."
+                                    : routeError
+                                        ? routeError
+                                    : routeData?.distance_m
+                                        ? `Dystans: ${(routeData.distance_m / 1000).toFixed(1)} km`
+                                        : "Mapa pokazuje punkty startu i końca przejazdu."}
+                            </div>
+                            <div className="font-medium text-gray-600">
+                                {routeData?.duration_s
+                                    ? `Szacowany czas: ${Math.round(routeData.duration_s / 60)} min`
+                                    : ""}
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Adresy */}
                     <div className="bg-white p-6 rounded-xl shadow-md relative overflow-hidden">
                         <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-gray-200"></div>
-                        
+
                         <div className="relative pl-8 mb-8">
                             <div className="absolute left-0 top-1 w-3 h-3 bg-green-600 rounded-full ring-4 ring-white"></div>
                             <h3 className="text-sm font-bold text-gray-400 uppercase">Start</h3>
@@ -101,7 +159,6 @@ function RideDetails() {
                         </div>
                     </div>
 
-                    {/* O Kierowcy */}
                     <div className="bg-white p-6 rounded-xl shadow-md flex justify-between items-center">
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 bg-zubr-dark rounded-full flex items-center justify-center text-white text-xl font-bold">
@@ -121,8 +178,6 @@ function RideDetails() {
                     </div>
                 </div>
 
-                {/* Prawa kolumna: Rezerwacja */}
-             {/* Prawa kolumna: Rezerwacja */}
                 <div className="md:col-span-1">
                     <div className="bg-white p-6 rounded-xl shadow-md sticky top-24">
                         <h3 className="text-xl font-bold text-gray-800 mb-4">Podsumowanie</h3>
@@ -139,7 +194,7 @@ function RideDetails() {
                                     try {
                                         await api.post(`/api/rides/${ride.id}/book/`);
                                         alert("Udało się! Zarezerwowałeś przejazd.");
-                                        navigate("/my-rides"); // Przenosi do moich przejazdów
+                                        navigate("/my-rides");
                                     } catch (err) {
                                         const errorMsg = err.response?.data?.error || "Wystąpił błąd podczas rezerwacji.";
                                         alert(errorMsg);
@@ -158,7 +213,6 @@ function RideDetails() {
                         </p>
                     </div>
                 </div>
-
             </div>
         </div>
     );

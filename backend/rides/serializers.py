@@ -1,7 +1,9 @@
 from rest_framework import serializers
+
 from .models import Ride
 from accounts.models import Location, Car
 from accounts.serializers import UserSerializer, CarSerializer
+from maps.services import MapsConfigurationError, MapsServiceError, OpenRouteServiceClient
 
 
 # =========================
@@ -10,9 +12,21 @@ from accounts.serializers import UserSerializer, CarSerializer
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
-        fields = ["id", "name", "city", "street", "st_number"]
+        fields = [
+            "id",
+            "name",
+            "city",
+            "street",
+            "st_number",
+            "postal_code",
+            "latitude",
+            "longitude",
+        ]
         extra_kwargs = {
             "name": {"required": False},
+            "postal_code": {"required": False, "allow_blank": True},
+            "latitude": {"required": False},
+            "longitude": {"required": False},
         }
 
 
@@ -63,27 +77,12 @@ class RideCreateSerializer(serializers.ModelSerializer):
         request = self.context["request"]
         user = request.user
 
-        # --- locations ---
         start_data = validated_data.pop("start_location")
         end_data = validated_data.pop("end_location")
 
-        start_loc = Location.objects.create(
-            user=user,
-            latitude=0.0,
-            longitude=0.0,
-            postal_code="00-000",
-            **start_data,
-        )
+        start_loc = self._create_location(user=user, location_data=start_data)
+        end_loc = self._create_location(user=user, location_data=end_data)
 
-        end_loc = Location.objects.create(
-            user=user,
-            latitude=0.0,
-            longitude=0.0,
-            postal_code="00-000",
-            **end_data,
-        )
-
-        # --- car (AUTO by owner) ---
         try:
             car = Car.objects.get(owner=user)
         except Car.DoesNotExist:
@@ -91,13 +90,11 @@ class RideCreateSerializer(serializers.ModelSerializer):
                 {"car": "Użytkownik nie ma przypisanego samochodu"}
             )
 
-        # --- seats validation ---
         if validated_data["available_seats"] > car.seats:
             raise serializers.ValidationError(
                 {"available_seats": "Liczba miejsc przekracza pojemność auta"}
             )
 
-        # --- ride ---
         ride = Ride.objects.create(
             driver=user,
             car=car,
@@ -108,3 +105,54 @@ class RideCreateSerializer(serializers.ModelSerializer):
         )
 
         return ride
+
+    def _create_location(self, *, user, location_data):
+        location_data = location_data.copy()
+        latitude = location_data.pop("latitude", None)
+        longitude = location_data.pop("longitude", None)
+
+        if latitude is None or longitude is None:
+            geocoded = self._geocode_location(location_data)
+            latitude = geocoded["latitude"]
+            longitude = geocoded["longitude"]
+            location_data["postal_code"] = location_data.get("postal_code") or geocoded.get(
+                "postal_code", ""
+            )
+
+        location_data["postal_code"] = location_data.get("postal_code") or ""
+
+        return Location.objects.create(
+            user=user,
+            latitude=latitude,
+            longitude=longitude,
+            **location_data,
+        )
+
+    def _geocode_location(self, location_data):
+        query_parts = [
+            location_data.get("street"),
+            location_data.get("st_number"),
+            location_data.get("city"),
+            location_data.get("postal_code"),
+            "Poland",
+        ]
+        query = " ".join(str(part).strip() for part in query_parts if part)
+
+        try:
+            client = OpenRouteServiceClient()
+            results = client.geocode(query=query, size=1, country_code="PL")
+        except MapsConfigurationError as exc:
+            raise serializers.ValidationError(
+                {"location": f"Konfiguracja map jest niekompletna: {exc}"}
+            ) from exc
+        except MapsServiceError as exc:
+            raise serializers.ValidationError(
+                {"location": f"Nie udało się zgeokodować adresu: {exc}"}
+            ) from exc
+
+        if not results:
+            raise serializers.ValidationError(
+                {"location": f"Nie znaleziono współrzędnych dla adresu: {query}"}
+            )
+
+        return results[0]
