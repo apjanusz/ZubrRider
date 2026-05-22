@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "rides",
     "community",
     "perks",
+    "maps",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -151,6 +152,13 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "../frontend/dist")]
 
 AUTH_USER_MODEL = "accounts.User"
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "zubrider-cache",
+    }
+}
+
 # REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -164,6 +172,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+ORS_API_KEY = os.environ.get("ORS_API_KEY", "")
+MAPS_GEOCODE_CACHE_TIMEOUT = int(os.environ.get("MAPS_GEOCODE_CACHE_TIMEOUT", 86400))
+MAPS_ROUTE_CACHE_TIMEOUT = int(os.environ.get("MAPS_ROUTE_CACHE_TIMEOUT", 3600))
 
 from datetime import timedelta
 
