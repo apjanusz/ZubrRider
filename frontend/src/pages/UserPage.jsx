@@ -29,35 +29,65 @@ const Field = ({ label, name, value, type = "text", disabled = false, width = "w
 function UserPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-
-    // Stany do edycji
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({});
+    const [cars, setCars] = useState([]);
+    const [carsLoading, setCarsLoading] = useState(true);
+    const [carForm, setCarForm] = useState({
+        brand: "",
+        model: "",
+        license_plate: "",
+        seats: 4,
+    });
+    const [carError, setCarError] = useState("");
+    const [carSubmitting, setCarSubmitting] = useState(false);
+    const [carDeletingId, setCarDeletingId] = useState(null);
 
     const navigate = useNavigate();
 
     useEffect(() => {
-        getUserProfile();
-    }, []);
-
-    const getUserProfile = async () => {
-        try {
-            const res = await api.get("/api/accounts/me/");
-            setUser(res.data);
-            setFormData(res.data);
-        } catch (error) {
-            console.error(error);
-            if (error.response && error.response.status === 401) {
-                navigate("/login");
+        const loadProfile = async () => {
+            try {
+                const res = await api.get("/api/accounts/me/");
+                setUser(res.data);
+                setFormData(res.data);
+            } catch (error) {
+                console.error(error);
+                if (error.response && error.response.status === 401) {
+                    navigate("/login");
+                }
+            } finally {
+                setLoading(false);
             }
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+
+        const loadCars = async () => {
+            try {
+                const res = await api.get("/api/accounts/my-cars/");
+                setCars(res.data);
+            } catch (error) {
+                console.error(error);
+                setCarError("Nie udało się pobrać pojazdów.");
+            } finally {
+                setCarsLoading(false);
+            }
+        };
+
+        loadProfile();
+        loadCars();
+    }, [navigate]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleCarFormChange = (e) => {
+        const { name, value } = e.target;
+        setCarForm(prev => ({
             ...prev,
             [name]: value
         }));
@@ -77,6 +107,79 @@ function UserPage() {
     const handleCancel = () => {
         setFormData(user);
         setIsEditing(false);
+    };
+
+    const handleAddCar = async (e) => {
+        e.preventDefault();
+        setCarSubmitting(true);
+        setCarError("");
+
+        const normalizedPlate = carForm.license_plate.replace(/\s+/g, "").toUpperCase();
+        const normalizedBrand = carForm.brand.trim();
+        const normalizedModel = carForm.model.trim();
+        const seats = Number(carForm.seats);
+
+        if (!normalizedBrand || !normalizedModel) {
+            setCarError("Marka i model pojazdu są wymagane.");
+            setCarSubmitting(false);
+            return;
+        }
+
+        if (!/^[A-Z0-9]{4,8}$/.test(normalizedPlate)) {
+            setCarError("Numer rejestracyjny musi mieć od 4 do 8 znaków alfanumerycznych.");
+            setCarSubmitting(false);
+            return;
+        }
+
+        if (!Number.isInteger(seats) || seats < 1 || seats > 8) {
+            setCarError("Liczba miejsc musi być w zakresie od 1 do 8.");
+            setCarSubmitting(false);
+            return;
+        }
+
+        try {
+            const payload = {
+                brand: normalizedBrand,
+                model: normalizedModel,
+                license_plate: normalizedPlate,
+                seats,
+            };
+
+            const res = await api.post("/api/accounts/my-cars/", payload);
+            setCars(prev => [...prev, res.data]);
+            setCarForm({
+                brand: "",
+                model: "",
+                license_plate: "",
+                seats: 4,
+            });
+        } catch (error) {
+            console.error(error);
+            const detail = error.response?.data;
+            if (detail && typeof detail === "object") {
+                const firstError = Object.values(detail).flat()[0];
+                setCarError(firstError || "Nie udało się dodać pojazdu.");
+            } else {
+                setCarError("Nie udało się dodać pojazdu.");
+            }
+        } finally {
+            setCarSubmitting(false);
+        }
+    };
+
+    const handleDeleteCar = async (carId) => {
+        setCarDeletingId(carId);
+        setCarError("");
+
+        try {
+            await api.delete(`/api/accounts/my-cars/${carId}/`);
+            setCars(prev => prev.filter(car => car.id !== carId));
+        } catch (error) {
+            console.error(error);
+            setCarError("Nie udało się usunąć pojazdu.");
+        } finally {
+            setCarDeletingId(null);
+        }
     };
 
     if (loading) {
@@ -202,6 +305,101 @@ function UserPage() {
                         Edytuj Profil
                     </button>
                 )}
+            </div>
+
+            <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
+                <h2 className="text-xl font-bold text-zubr-dark mb-4 border-b border-gray-100 pb-2">
+                    Moje pojazdy
+                </h2>
+
+                {carError && (
+                    <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {carError}
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Dodaj pojazd</h3>
+                        <form onSubmit={handleAddCar} className="space-y-3">
+                            <input
+                                type="text"
+                                name="brand"
+                                value={carForm.brand}
+                                onChange={handleCarFormChange}
+                                placeholder="Marka"
+                                required
+                                className="w-full border border-gray-300 rounded px-3 py-2 text-gray-700 focus:outline-none focus:border-zubr-gold"
+                            />
+                            <input
+                                type="text"
+                                name="model"
+                                value={carForm.model}
+                                onChange={handleCarFormChange}
+                                placeholder="Model"
+                                required
+                                className="w-full border border-gray-300 rounded px-3 py-2 text-gray-700 focus:outline-none focus:border-zubr-gold"
+                            />
+                            <input
+                                type="text"
+                                name="license_plate"
+                                value={carForm.license_plate}
+                                onChange={handleCarFormChange}
+                                placeholder="Numer rejestracyjny"
+                                required
+                                maxLength={8}
+                                className="w-full border border-gray-300 rounded px-3 py-2 text-gray-700 uppercase focus:outline-none focus:border-zubr-gold"
+                            />
+                            <input
+                                type="number"
+                                name="seats"
+                                value={carForm.seats}
+                                onChange={handleCarFormChange}
+                                placeholder="Liczba miejsc"
+                                required
+                                min={1}
+                                className="w-full border border-gray-300 rounded px-3 py-2 text-gray-700 focus:outline-none focus:border-zubr-gold"
+                            />
+                            <button
+                                type="submit"
+                                disabled={carSubmitting}
+                                className="text-white bg-zubr-dark border border-zubr-dark px-5 py-2 rounded hover:bg-zubr-gold hover:border-zubr-gold transition disabled:opacity-60"
+                            >
+                                {carSubmitting ? "Dodawanie..." : "Dodaj pojazd"}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Twoje zapisane pojazdy</h3>
+                        {carsLoading ? (
+                            <div className="text-sm text-gray-500">Ładowanie pojazdów...</div>
+                        ) : cars.length === 0 ? (
+                            <div className="text-sm text-gray-500 border border-dashed rounded px-4 py-6 text-center">
+                                Nie masz jeszcze dodanych pojazdów.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {cars.map((car) => (
+                                    <div key={car.id} className="border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="font-semibold text-gray-800">{car.brand} {car.model}</p>
+                                            <p className="text-sm text-gray-500">{car.license_plate} • {car.seats} miejsc</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteCar(car.id)}
+                                            disabled={carDeletingId === car.id}
+                                            className="text-sm text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-50 transition disabled:opacity-60"
+                                        >
+                                            {carDeletingId === car.id ? "Usuwanie..." : "Usuń"}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );

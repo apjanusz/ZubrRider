@@ -229,6 +229,12 @@ function PublishRide() {
         setSubmitting(true);
         setFormError("");
 
+        if (!formData.car_id) {
+            setFormError("Wybierz pojazd, którym chcesz zrealizować przejazd.");
+            setSubmitting(false);
+            return;
+        }
+
         const payload = {
             car_id: formData.car_id,
             departure_date: formData.date,
@@ -263,7 +269,7 @@ function PublishRide() {
             console.error(error);
             const detail =
                 error.response?.data?.location ||
-                error.response?.data?.car ||
+                error.response?.data?.car_id ||
                 error.response?.data?.available_seats ||
                 error.response?.data?.detail ||
                 "Wystąpił błąd przy dodawaniu przejazdu. Sprawdź poprawność danych.";
@@ -282,10 +288,17 @@ function PublishRide() {
             <div className="text-center py-12 bg-white rounded-xl shadow p-8 max-w-lg mx-auto border-t-4 border-red-500">
                 <AlertCircle className="mx-auto text-red-500 mb-4" size={48} />
                 <h2 className="text-xl font-bold mb-4 text-gray-800">Nie masz dodanego samochodu!</h2>
-                <p className="text-gray-600 mb-6">Aby dodać przejazd, musisz najpierw zarejestrować pojazd w swoim profilu.</p>
-                <p className="text-xs text-gray-400 bg-gray-50 p-3 rounded border">
-                    Funkcja dodawania auta w przygotowaniu - poproś administratora o dodanie auta w panelu Django.
+                <p className="text-gray-600 mb-6">
+                    Aby opublikować przejazd, najpierw dodaj pojazd w swoim profilu.
                 </p>
+                <button
+                    type="button"
+                    onClick={() => navigate("/profile")}
+                    className="inline-flex items-center gap-2 rounded-lg bg-zubr-dark px-5 py-3 font-semibold text-white transition hover:bg-zubr-gold"
+                >
+                    <Car size={18} />
+                    Przejdź do profilu
+                </button>
             </div>
         );
     }
@@ -525,9 +538,11 @@ function PublishRide() {
                     <select
                         name="car_id"
                         value={formData.car_id}
+                        required
                         className="w-full p-3 border rounded bg-white focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
                         onChange={handleChange}
                     >
+                        <option value="" disabled>Wybierz pojazd</option>
                         {cars.map(car => (
                             <option key={car.id} value={car.id}>
                                 {car.brand} {car.model} ({car.license_plate})

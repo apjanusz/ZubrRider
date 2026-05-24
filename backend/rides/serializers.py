@@ -59,12 +59,18 @@ class RideDetailSerializer(serializers.ModelSerializer):
 # Ride – CREATE
 # =========================
 class RideCreateSerializer(serializers.ModelSerializer):
+    car_id = serializers.PrimaryKeyRelatedField(
+        source="car",
+        queryset=Car.objects.all(),
+        write_only=True,
+    )
     start_location = LocationSerializer()
     end_location = LocationSerializer()
 
     class Meta:
         model = Ride
         fields = [
+            "car_id",
             "start_location",
             "end_location",
             "departure_date",
@@ -73,22 +79,25 @@ class RideCreateSerializer(serializers.ModelSerializer):
             "available_seats",
         ]
 
+    def validate(self, attrs):
+        request = self.context["request"]
+        car = attrs["car"]
+        if car.owner_id != request.user.id:
+            raise serializers.ValidationError(
+                {"car_id": "Wybrany pojazd nie należy do użytkownika"}
+            )
+        return attrs
+
     def create(self, validated_data):
         request = self.context["request"]
         user = request.user
+        car = validated_data.pop("car")
 
         start_data = validated_data.pop("start_location")
         end_data = validated_data.pop("end_location")
 
         start_loc = self._create_location(user=user, location_data=start_data)
         end_loc = self._create_location(user=user, location_data=end_data)
-
-        try:
-            car = Car.objects.get(owner=user)
-        except Car.DoesNotExist:
-            raise serializers.ValidationError(
-                {"car": "Użytkownik nie ma przypisanego samochodu"}
-            )
 
         if validated_data["available_seats"] > car.seats:
             raise serializers.ValidationError(

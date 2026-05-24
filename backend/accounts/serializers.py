@@ -1,3 +1,5 @@
+import re
+
 from rest_framework import serializers
 from .models import User, Car
 
@@ -83,6 +85,31 @@ class UserSerializer(serializers.ModelSerializer):
             "rating_count": ratings.count(),
         }
 class CarSerializer(serializers.ModelSerializer):
+    def validate_brand(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Marka pojazdu jest wymagana.")
+        return value
+
+    def validate_model(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Model pojazdu jest wymagany.")
+        return value
+
+    def validate_license_plate(self, value):
+        normalized = re.sub(r"\s+", "", value).upper()
+        if not re.fullmatch(r"[A-Z0-9]{4,8}", normalized):
+            raise serializers.ValidationError(
+                "Numer rejestracyjny musi mieć od 4 do 8 znaków alfanumerycznych."
+            )
+        return normalized
+
+    def validate_seats(self, value):
+        if value < 1 or value > 8:
+            raise serializers.ValidationError("Liczba miejsc musi być w zakresie od 1 do 8.")
+        return value
+
     class Meta:
         model = Car
         fields = ["id", "brand", "model", "license_plate", "seats"]
