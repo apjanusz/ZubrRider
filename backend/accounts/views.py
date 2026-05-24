@@ -1,3 +1,5 @@
+import calendar
+from django.utils import timezone
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -60,3 +62,65 @@ class MyCarsView(views.APIView):
         car = get_object_or_404(Car, id=pk, owner=request.user)
         car.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DriverCardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    REQUIRED_RIDES = 10
+
+    def get(self, request):
+        from rides.models import Ride
+
+        user = request.user
+        today = timezone.now().date()
+
+        current_year = today.year
+        current_month = today.month
+
+        if current_month == 1:
+            prev_year = current_year - 1
+            prev_month = 12
+        else:
+            prev_year = current_year
+            prev_month = current_month - 1
+
+        rides_this_month = Ride.objects.filter(
+            driver=user,
+            departure_date__year=current_year,
+            departure_date__month=current_month,
+        ).count()
+
+        rides_last_month = Ride.objects.filter(
+            driver=user,
+            departure_date__year=prev_year,
+            departure_date__month=prev_month,
+        ).count()
+
+        eligible = False
+        valid_from = None
+        valid_until = None
+
+        if rides_this_month >= self.REQUIRED_RIDES:
+            eligible = True
+            valid_from = today.replace(day=1)
+            if current_month == 12:
+                next_year, next_month = current_year + 1, 1
+            else:
+                next_year, next_month = current_year, current_month + 1
+            last_day = calendar.monthrange(next_year, next_month)[1]
+            valid_until = today.replace(year=next_year, month=next_month, day=last_day)
+        elif rides_last_month >= self.REQUIRED_RIDES:
+            eligible = True
+            valid_from = today.replace(year=prev_year, month=prev_month, day=1)
+            last_day = calendar.monthrange(current_year, current_month)[1]
+            valid_until = today.replace(day=last_day)
+
+        return Response({
+            "eligible": eligible,
+            "rides_this_month": rides_this_month,
+            "rides_last_month": rides_last_month,
+            "required_rides": self.REQUIRED_RIDES,
+            "valid_from": valid_from.isoformat() if valid_from else None,
+            "valid_until": valid_until.isoformat() if valid_until else None,
+        })

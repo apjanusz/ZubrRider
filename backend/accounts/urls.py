@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, UserProfileView, DriverProfileView, MyCarsView
+from .views import RegisterView, UserProfileView, DriverProfileView, MyCarsView, DriverCardView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -18,5 +18,6 @@ urlpatterns = [
     path("driver/<int:pk>/", DriverProfileView.as_view(), name="driver_profile"),
     # moje samochody (do listy rozwijanej)
     path("my-cars/", MyCarsView.as_view(), name="my_cars"),
-path("my-cars/<int:pk>/", MyCarsView.as_view(), name="delete_car"),
+    path("my-cars/<int:pk>/", MyCarsView.as_view(), name="delete_car"),
+    path("driver-card/", DriverCardView.as_view(), name="driver_card"),
 ]
