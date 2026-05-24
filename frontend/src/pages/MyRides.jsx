@@ -78,7 +78,7 @@ function MyRides() {
     const displayedHistory = showAllPast ? historyRides : historyRides.slice(-3);
 
     return (
-        <div className="max-w-6xl mx-auto pb-12">
+        <div className="w-full pb-12">
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-zubr-dark">Moje Przejazdy</h1>

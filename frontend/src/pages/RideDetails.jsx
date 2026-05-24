@@ -88,7 +88,7 @@ function RideDetails() {
     if (!ride) return <div className="text-center mt-10">Nie znaleziono przejazdu.</div>;
 
     return (
-        <div className="max-w-4xl mx-auto pb-12">
+        <div className="w-full pb-12">
             <div className="bg-white rounded-xl shadow-lg p-8 mb-6 border-l-8 border-zubr-gold">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                     <div>

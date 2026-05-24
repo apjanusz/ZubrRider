@@ -473,7 +473,7 @@ function PublishRide() {
     const showEndStatus = loadingSuggestions.end || selectedAddresses.end;
 
     return (
-        <div className="max-w-5xl mx-auto py-10 px-4">
+        <div className="w-full py-10">
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-zubr-dark mb-2">Dodaj nowy przejazd</h1>
