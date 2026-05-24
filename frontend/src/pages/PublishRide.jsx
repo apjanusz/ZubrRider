@@ -16,22 +16,132 @@ import {
 } from "lucide-react";
 
 function buildAddressQuery(prefix, formData) {
-    const parts = [
-        [formData[`${prefix}_street`], formData[`${prefix}_st_number`]].filter(Boolean).join(" "),
-        formData[`${prefix}_city`],
-        formData[`${prefix}_postal_code`],
-        "Poland",
-    ];
+    const rawValue = formData[`${prefix}_address`].trim();
+    if (!rawValue) {
+        return "";
+    }
 
-    return parts.filter(Boolean).join(", ");
+    const normalized = rawValue.replace(/\s+/g, " ").replace(/\s*,\s*/g, ", ").trim();
+    const commaParts = normalized.split(",").map(part => part.trim()).filter(Boolean);
+
+    if (commaParts.length >= 2) {
+        const baseParts = commaParts.filter(part => part.toLowerCase() !== "poland");
+        return [...baseParts, "Poland"].join(", ");
+    }
+
+    const tokens = normalized.split(" ").filter(Boolean);
+    const streetIndex = tokens.findIndex(token => /\d/.test(token));
+
+    if (streetIndex > 0) {
+        const city = tokens.slice(0, streetIndex).join(" ");
+        const street = tokens.slice(streetIndex - 1).join(" ");
+        return `${street}, ${city}, Poland`;
+    }
+
+    return `${normalized}, Poland`;
 }
 
 function hasSearchableInput(prefix, formData) {
-    const city = formData[`${prefix}_city`].trim();
-    const street = formData[`${prefix}_street`].trim();
-    const postalCode = formData[`${prefix}_postal_code`].trim();
+    const query = formData[`${prefix}_address`].trim();
+    if (query.length < 8) {
+        return false;
+    }
 
-    return city.length >= 2 || street.length >= 2 || postalCode.length >= 3;
+    const normalized = normalizeForMatch(query);
+    const hasSeparator = normalized.includes(",");
+    const hasStreetNumber = /\d/.test(normalized);
+
+    return hasSeparator || hasStreetNumber;
+}
+
+function normalizeForMatch(value) {
+    return (value || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function extractAddressParts(query) {
+    const normalized = normalizeForMatch(query);
+    const withoutCountry = normalized.replace(/\bpoland\b/g, "").trim();
+    const commaParts = withoutCountry.split(",").map(part => part.trim()).filter(Boolean);
+
+    if (commaParts.length >= 2) {
+        return {
+            streetPart: commaParts[0],
+            cityPart: commaParts[1],
+        };
+    }
+
+    const tokens = withoutCountry.split(" ").filter(Boolean);
+    const numberIndex = tokens.findIndex(token => /\d/.test(token));
+
+    if (numberIndex > 0) {
+        return {
+            cityPart: tokens.slice(0, numberIndex - 1).join(" "),
+            streetPart: tokens.slice(numberIndex - 1).join(" "),
+        };
+    }
+
+    return {
+        streetPart: withoutCountry,
+        cityPart: "",
+    };
+}
+
+function scoreSuggestion(query, suggestion) {
+    const { streetPart, cityPart } = extractAddressParts(query);
+    const label = normalizeForMatch(suggestion.label);
+    const city = normalizeForMatch(suggestion.locality || suggestion.city);
+    const street = normalizeForMatch(suggestion.street);
+    let score = 0;
+
+    if (cityPart) {
+        if (city === cityPart) {
+            score += 120;
+        } else if (label.includes(cityPart)) {
+            score += 70;
+        } else {
+            score -= 80;
+        }
+    }
+
+    if (streetPart) {
+        if (street && street === streetPart) {
+            score += 90;
+        } else if (label.includes(streetPart)) {
+            score += 50;
+        }
+    }
+
+    if (label.includes("poland")) {
+        score += 5;
+    }
+
+    return score;
+}
+
+function rankSuggestions(query, suggestions) {
+    const ranked = suggestions
+        .map(suggestion => ({ suggestion, score: scoreSuggestion(query, suggestion) }))
+        .filter(item => item.score > -40)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.suggestion);
+
+    return ranked;
+}
+
+function normalizeSuggestion(suggestion) {
+    return {
+        label: suggestion.label || "",
+        city: suggestion.locality || suggestion.city || "",
+        street: suggestion.street || "",
+        postal_code: suggestion.postal_code || "",
+        latitude: suggestion.latitude,
+        longitude: suggestion.longitude,
+    };
 }
 
 function PublishRide() {
@@ -41,7 +151,7 @@ function PublishRide() {
     const [submitting, setSubmitting] = useState(false);
     const [loadingSuggestions, setLoadingSuggestions] = useState({ start: false, end: false });
     const [locationSuggestions, setLocationSuggestions] = useState({ start: [], end: [] });
-    const [selectedLocations, setSelectedLocations] = useState({ start: null, end: null });
+    const [selectedAddresses, setSelectedAddresses] = useState({ start: null, end: null });
     const [previewRoute, setPreviewRoute] = useState(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
     const [formError, setFormError] = useState("");
@@ -50,14 +160,8 @@ function PublishRide() {
     const latestSuggestionRequest = useRef({ start: 0, end: 0 });
 
     const [formData, setFormData] = useState({
-        start_city: "",
-        start_street: "",
-        start_st_number: "",
-        start_postal_code: "",
-        end_city: "",
-        end_street: "",
-        end_st_number: "",
-        end_postal_code: "",
+        start_address: "",
+        end_address: "",
         date: "",
         time: "",
         price: "",
@@ -81,7 +185,7 @@ function PublishRide() {
 
     useEffect(() => {
         const fetchRoutePreview = async () => {
-            if (!selectedLocations.start || !selectedLocations.end) {
+            if (!selectedAddresses.start || !selectedAddresses.end) {
                 setPreviewRoute(null);
                 setPreviewError("");
                 return;
@@ -92,12 +196,12 @@ function PublishRide() {
             try {
                 const res = await api.post("/api/maps/route/", {
                     start: {
-                        latitude: Number(selectedLocations.start.latitude),
-                        longitude: Number(selectedLocations.start.longitude),
+                        latitude: Number(selectedAddresses.start.latitude),
+                        longitude: Number(selectedAddresses.start.longitude),
                     },
                     end: {
-                        latitude: Number(selectedLocations.end.latitude),
-                        longitude: Number(selectedLocations.end.longitude),
+                        latitude: Number(selectedAddresses.end.latitude),
+                        longitude: Number(selectedAddresses.end.longitude),
                     },
                 });
                 setPreviewRoute(res.data);
@@ -110,7 +214,7 @@ function PublishRide() {
         };
 
         fetchRoutePreview();
-    }, [selectedLocations]);
+    }, [selectedAddresses]);
 
     useEffect(() => {
         const scheduleSuggestions = (prefix) => {
@@ -124,7 +228,7 @@ function PublishRide() {
                 return undefined;
             }
 
-            if (selectedLocations[prefix]) {
+            if (selectedAddresses[prefix]) {
                 setLoadingSuggestions(prev => ({ ...prev, [prefix]: false }));
                 setLocationSuggestions(prev => ({ ...prev, [prefix]: [] }));
                 setSuggestionError(prev => ({ ...prev, [prefix]: "" }));
@@ -153,7 +257,7 @@ function PublishRide() {
                         return;
                     }
 
-                    const results = res.data.results || [];
+                    const results = rankSuggestions(query, res.data.results || []);
                     setLocationSuggestions(prev => ({ ...prev, [prefix]: results }));
                     setSuggestionError(prev => ({
                         ...prev,
@@ -174,7 +278,7 @@ function PublishRide() {
                         setLoadingSuggestions(prev => ({ ...prev, [prefix]: false }));
                     }
                 }
-            }, 400);
+            }, 600);
 
             return () => clearTimeout(timeoutId);
         };
@@ -187,41 +291,38 @@ function PublishRide() {
             cleanupEnd?.();
         };
     }, [
-        formData.start_city,
-        formData.start_street,
-        formData.start_st_number,
-        formData.start_postal_code,
-        formData.end_city,
-        formData.end_street,
-        formData.end_st_number,
-        formData.end_postal_code,
-        selectedLocations,
+        formData.start_address,
+        formData.end_address,
+        selectedAddresses,
     ]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         const prefix = name.startsWith("start_") ? "start" : name.startsWith("end_") ? "end" : null;
+        const hadSelectedAddress = prefix ? Boolean(selectedAddresses[prefix]) : false;
 
         setFormData(prev => ({ ...prev, [name]: value }));
 
         if (prefix) {
-            setSelectedLocations(prev => ({ ...prev, [prefix]: null }));
+            setSelectedAddresses(prev => ({ ...prev, [prefix]: null }));
             setLocationSuggestions(prev => ({ ...prev, [prefix]: [] }));
-            setSuggestionError(prev => ({ ...prev, [prefix]: "" }));
+            setSuggestionError(prev => ({
+                ...prev,
+                [prefix]: hadSelectedAddress ? "Adres został zmieniony. Wybierz go ponownie z sugestii." : "",
+            }));
         }
     };
 
     const selectSuggestion = (prefix, suggestion) => {
+        const normalized = normalizeSuggestion(suggestion);
         latestSuggestionRequest.current[prefix] += 1;
-        setSelectedLocations(prev => ({ ...prev, [prefix]: suggestion }));
+        setSelectedAddresses(prev => ({ ...prev, [prefix]: normalized }));
         setLocationSuggestions(prev => ({ ...prev, [prefix]: [] }));
         setSuggestionError(prev => ({ ...prev, [prefix]: "" }));
         setLoadingSuggestions(prev => ({ ...prev, [prefix]: false }));
         setFormData(prev => ({
             ...prev,
-            [`${prefix}_city`]: suggestion.locality || prev[`${prefix}_city`],
-            [`${prefix}_street`]: suggestion.street || prev[`${prefix}_street`],
-            [`${prefix}_postal_code`]: suggestion.postal_code || prev[`${prefix}_postal_code`],
+            [`${prefix}_address`]: normalized.label || prev[`${prefix}_address`],
         }));
     };
 
@@ -236,6 +337,12 @@ function PublishRide() {
             return;
         }
 
+        if (!selectedAddresses.start || !selectedAddresses.end) {
+            setFormError("Wybierz z sugestii potwierdzony adres startowy i docelowy.");
+            setSubmitting(false);
+            return;
+        }
+
         const payload = {
             car_id: formData.car_id,
             departure_date: formData.date,
@@ -243,22 +350,22 @@ function PublishRide() {
             cost_per_passenger: formData.price,
             available_seats: formData.seats,
             start_location: {
-                name: "Start",
-                city: formData.start_city,
-                street: formData.start_street,
-                st_number: formData.start_st_number,
-                postal_code: formData.start_postal_code,
-                latitude: selectedLocations.start?.latitude,
-                longitude: selectedLocations.start?.longitude,
+                name: selectedAddresses.start.label,
+                city: selectedAddresses.start.city,
+                street: selectedAddresses.start.street,
+                st_number: "",
+                postal_code: selectedAddresses.start.postal_code,
+                latitude: selectedAddresses.start.latitude,
+                longitude: selectedAddresses.start.longitude,
             },
             end_location: {
-                name: "Koniec",
-                city: formData.end_city,
-                street: formData.end_street,
-                st_number: formData.end_st_number,
-                postal_code: formData.end_postal_code,
-                latitude: selectedLocations.end?.latitude,
-                longitude: selectedLocations.end?.longitude,
+                name: selectedAddresses.end.label,
+                city: selectedAddresses.end.city,
+                street: selectedAddresses.end.street,
+                st_number: "",
+                postal_code: selectedAddresses.end.postal_code,
+                latitude: selectedAddresses.end.latitude,
+                longitude: selectedAddresses.end.longitude,
             }
         };
 
@@ -288,6 +395,10 @@ function PublishRide() {
         return <div className="text-center mt-10 text-gray-500">Przekierowanie do Twoich przejazdów...</div>;
     }
 
+    const canSubmitRide = Boolean(selectedAddresses.start && selectedAddresses.end && formData.car_id);
+    const showStartStatus = loadingSuggestions.start || selectedAddresses.start;
+    const showEndStatus = loadingSuggestions.end || selectedAddresses.end;
+
     return (
         <div className="max-w-5xl mx-auto py-10 px-4">
             <div className="mb-8">
@@ -299,168 +410,118 @@ function PublishRide() {
                     Wroc do moich przejazdow
                 </button>
                 <h1 className="text-3xl font-bold text-zubr-dark mb-2">Dodaj nowy przejazd</h1>
-                <p className="text-gray-600">Wypełnij dane przejazdu, wybierz adresy i sprawdź trasę na mapie.</p>
+                <p className="text-gray-600">Wpisz adresy w formacie ulica i numer, potem miasto, a następnie wybierz właściwe sugestie.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2 min-w-0">
                     <form onSubmit={handleSubmit} className="space-y-8">
                         <div className="bg-gray-50 p-5 rounded-lg border border-gray-100">
-                    <h3 className="font-bold text-gray-700 mb-4 uppercase text-xs tracking-widest flex items-center gap-2">
-                        <MapPin size={16} className="text-zubr-gold" /> Miejsce startu
-                    </h3>
-                    <div className="grid grid-cols-4 gap-4">
-                        <div className="col-span-4 md:col-span-2">
+                            <h3 className="font-bold text-gray-700 mb-4 uppercase text-xs tracking-widest flex items-center gap-2">
+                                <MapPin size={16} className="text-zubr-gold" /> Miejsce startu
+                            </h3>
                             <input
-                                name="start_city"
-                                placeholder="Miasto"
-                                value={formData.start_city}
+                                name="start_address"
+                                placeholder="Np. Wiejska 45, Bialystok"
+                                value={formData.start_address}
                                 required
                                 onChange={handleChange}
-                                className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
+                                className="w-full p-3 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
                             />
-                        </div>
-                        <div className="col-span-3 md:col-span-1">
-                            <input
-                                name="start_street"
-                                placeholder="Ulica"
-                                value={formData.start_street}
-                                onChange={handleChange}
-                                className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
-                            />
-                        </div>
-                        <div className="col-span-1">
-                            <input
-                                name="start_st_number"
-                                placeholder="Nr"
-                                value={formData.start_st_number}
-                                onChange={handleChange}
-                                className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
-                            />
-                        </div>
-                        <div className="col-span-4 md:col-span-2">
-                            <input
-                                name="start_postal_code"
-                                placeholder="Kod pocztowy"
-                                value={formData.start_postal_code}
-                                onChange={handleChange}
-                                className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
-                            />
-                        </div>
-                    </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-3 min-h-6">
-                        {loadingSuggestions.start && (
-                            <span className="text-sm text-gray-500 flex items-center gap-2">
-                                <LoaderCircle size={16} className="animate-spin" />
-                                Szukam adresu startowego...
-                            </span>
-                        )}
-                        {selectedLocations.start && (
-                            <span className="text-sm text-green-700 flex items-center gap-1">
-                                <CheckCircle2 size={16} />
-                                Wybrano konkretny adres startowy
-                            </span>
-                        )}
-                    </div>
-                    {suggestionError.start && (
-                        <p className="mt-3 text-sm text-red-600">{suggestionError.start}</p>
-                    )}
-                    {locationSuggestions.start.length > 0 && (
-                        <div className="mt-3 space-y-2">
-                            {locationSuggestions.start.map((suggestion, index) => (
-                                <button
-                                    key={`${suggestion.label}-${index}`}
-                                    type="button"
-                                    onClick={() => selectSuggestion("start", suggestion)}
-                                    className="w-full text-left bg-white border border-gray-200 rounded-lg p-3 hover:border-zubr-gold transition"
-                                >
-                                    <div className="font-semibold text-gray-800">{suggestion.label}</div>
-                                    <div className="text-xs text-gray-500">
-                                        {suggestion.latitude}, {suggestion.longitude}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                            <p className="mt-3 text-sm text-gray-500">Preferowany format: ulica i numer, potem miasto.</p>
+                            {showStartStatus && (
+                                <div className="mt-4 flex flex-wrap items-center gap-3">
+                                    {loadingSuggestions.start && (
+                                        <span className="text-sm text-gray-500 flex items-center gap-2">
+                                            <LoaderCircle size={16} className="animate-spin" />
+                                            Szukam adresu startowego...
+                                        </span>
+                                    )}
+                                    {selectedAddresses.start && (
+                                        <span className="text-sm text-green-700 flex items-center gap-1">
+                                            <CheckCircle2 size={16} />
+                                            Wybrano konkretny adres startowy
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            {suggestionError.start && (
+                                <p className="mt-3 text-sm text-red-600">{suggestionError.start}</p>
+                            )}
+                            {formData.start_address && !selectedAddresses.start && !suggestionError.start && (
+                                <p className="mt-3 text-sm text-amber-600">Wybierz adres startowy z listy sugestii.</p>
+                            )}
+                            {locationSuggestions.start.length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                    {locationSuggestions.start.map((suggestion, index) => (
+                                        <button
+                                            key={`${suggestion.label}-${index}`}
+                                            type="button"
+                                            onClick={() => selectSuggestion("start", suggestion)}
+                                            className="w-full text-left bg-white border border-gray-200 rounded-lg p-3 hover:border-zubr-gold transition"
+                                        >
+                                            <div className="font-semibold text-gray-800">{suggestion.label}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {suggestion.latitude}, {suggestion.longitude}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="bg-gray-50 p-5 rounded-lg border border-gray-100">
-                    <h3 className="font-bold text-gray-700 mb-4 uppercase text-xs tracking-widest flex items-center gap-2">
-                        <Flag size={16} className="text-zubr-gold" /> Miejsce docelowe
-                    </h3>
-                    <div className="grid grid-cols-4 gap-4">
-                        <div className="col-span-4 md:col-span-2">
+                            <h3 className="font-bold text-gray-700 mb-4 uppercase text-xs tracking-widest flex items-center gap-2">
+                                <Flag size={16} className="text-zubr-gold" /> Miejsce docelowe
+                            </h3>
                             <input
-                                name="end_city"
-                                placeholder="Miasto"
-                                value={formData.end_city}
+                                name="end_address"
+                                placeholder="Np. Lipowa 12, Choroszcz"
+                                value={formData.end_address}
                                 required
                                 onChange={handleChange}
-                                className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
+                                className="w-full p-3 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
                             />
-                        </div>
-                        <div className="col-span-3 md:col-span-1">
-                            <input
-                                name="end_street"
-                                placeholder="Ulica"
-                                value={formData.end_street}
-                                onChange={handleChange}
-                                className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
-                            />
-                        </div>
-                        <div className="col-span-1">
-                            <input
-                                name="end_st_number"
-                                placeholder="Nr"
-                                value={formData.end_st_number}
-                                onChange={handleChange}
-                                className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
-                            />
-                        </div>
-                        <div className="col-span-4 md:col-span-2">
-                            <input
-                                name="end_postal_code"
-                                placeholder="Kod pocztowy"
-                                value={formData.end_postal_code}
-                                onChange={handleChange}
-                                className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm"
-                            />
-                        </div>
-                    </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-3 min-h-6">
-                        {loadingSuggestions.end && (
-                            <span className="text-sm text-gray-500 flex items-center gap-2">
-                                <LoaderCircle size={16} className="animate-spin" />
-                                Szukam adresu docelowego...
-                            </span>
-                        )}
-                        {selectedLocations.end && (
-                            <span className="text-sm text-green-700 flex items-center gap-1">
-                                <CheckCircle2 size={16} />
-                                Wybrano konkretny adres docelowy
-                            </span>
-                        )}
-                    </div>
-                    {suggestionError.end && (
-                        <p className="mt-3 text-sm text-red-600">{suggestionError.end}</p>
-                    )}
-                    {locationSuggestions.end.length > 0 && (
-                        <div className="mt-3 space-y-2">
-                            {locationSuggestions.end.map((suggestion, index) => (
-                                <button
-                                    key={`${suggestion.label}-${index}`}
-                                    type="button"
-                                    onClick={() => selectSuggestion("end", suggestion)}
-                                    className="w-full text-left bg-white border border-gray-200 rounded-lg p-3 hover:border-zubr-gold transition"
-                                >
-                                    <div className="font-semibold text-gray-800">{suggestion.label}</div>
-                                    <div className="text-xs text-gray-500">
-                                        {suggestion.latitude}, {suggestion.longitude}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                            <p className="mt-3 text-sm text-gray-500">Preferowany format: ulica i numer, potem miasto.</p>
+                            {showEndStatus && (
+                                <div className="mt-4 flex flex-wrap items-center gap-3">
+                                    {loadingSuggestions.end && (
+                                        <span className="text-sm text-gray-500 flex items-center gap-2">
+                                            <LoaderCircle size={16} className="animate-spin" />
+                                            Szukam adresu docelowego...
+                                        </span>
+                                    )}
+                                    {selectedAddresses.end && (
+                                        <span className="text-sm text-green-700 flex items-center gap-1">
+                                            <CheckCircle2 size={16} />
+                                            Wybrano konkretny adres docelowy
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            {suggestionError.end && (
+                                <p className="mt-3 text-sm text-red-600">{suggestionError.end}</p>
+                            )}
+                            {formData.end_address && !selectedAddresses.end && !suggestionError.end && (
+                                <p className="mt-3 text-sm text-amber-600">Wybierz adres docelowy z listy sugestii.</p>
+                            )}
+                            {locationSuggestions.end.length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                    {locationSuggestions.end.map((suggestion, index) => (
+                                        <button
+                                            key={`${suggestion.label}-${index}`}
+                                            type="button"
+                                            onClick={() => selectSuggestion("end", suggestion)}
+                                            className="w-full text-left bg-white border border-gray-200 rounded-lg p-3 hover:border-zubr-gold transition"
+                                        >
+                                            <div className="font-semibold text-gray-800">{suggestion.label}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {suggestion.latitude}, {suggestion.longitude}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -551,7 +612,7 @@ function PublishRide() {
 
                         <button
                             type="submit"
-                            disabled={submitting}
+                            disabled={submitting || !canSubmitRide}
                             className="w-full bg-zubr-dark text-white py-4 rounded-xl font-bold text-lg hover:bg-green-800 transition flex items-center justify-center gap-3 shadow-lg disabled:opacity-50"
                         >
                             {submitting ? "Trwa publikowanie..." : (
@@ -571,8 +632,8 @@ function PublishRide() {
                                 Podgląd trasy
                             </h2>
                             <RideMap
-                                start={selectedLocations.start}
-                                end={selectedLocations.end}
+                                start={selectedAddresses.start}
+                                end={selectedAddresses.end}
                                 geometry={previewRoute?.geometry}
                                 heightClassName="h-64"
                             />
@@ -581,11 +642,11 @@ function PublishRide() {
                         <div className="text-sm text-gray-600 space-y-2">
                             <div>
                                 <span className="font-medium text-gray-800">Start:</span>{" "}
-                                {selectedLocations.start?.label || "Wybierz adres startowy z sugestii"}
+                                {selectedAddresses.start?.label || "Wybierz adres startowy z sugestii"}
                             </div>
                             <div>
                                 <span className="font-medium text-gray-800">Koniec:</span>{" "}
-                                {selectedLocations.end?.label || "Wybierz adres docelowy z sugestii"}
+                                {selectedAddresses.end?.label || "Wybierz adres docelowy z sugestii"}
                             </div>
                         </div>
 
