@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 import { motion, AnimatePresence } from "framer-motion";
+import { AlertCircle, Car } from "lucide-react";
 
 function MyRides() {
+    const navigate = useNavigate();
     const [rides, setRides] = useState({ as_driver: [], as_passenger: [] });
+    const [cars, setCars] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("driver");
     const [showAllPast, setShowAllPast] = useState(false);
+    const [showMissingCarModal, setShowMissingCarModal] = useState(false);
 
     useEffect(() => {
         fetchMyRides();
+        fetchMyCars();
     }, []);
 
     const fetchMyRides = async () => {
@@ -22,6 +27,24 @@ function MyRides() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchMyCars = async () => {
+        try {
+            const res = await api.get("/api/accounts/my-cars/");
+            setCars(res.data);
+        } catch (error) {
+            console.error("Błąd pobierania pojazdów:", error);
+        }
+    };
+
+    const handleAddRide = () => {
+        if (cars.length === 0) {
+            setShowMissingCarModal(true);
+            return;
+        }
+
+        navigate("/publish-ride");
     };
 
     const handleCancelBooking = async (rideId) => {
@@ -56,7 +79,21 @@ function MyRides() {
 
     return (
         <div className="max-w-6xl mx-auto pb-12">
-            <h1 className="text-3xl font-bold text-zubr-dark mb-8">Moje Przejazdy</h1>
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-zubr-dark">Moje Przejazdy</h1>
+                    <p className="mt-2 text-gray-600">
+                        Zarządzaj swoimi przejazdami jako kierowca i pasażer.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={handleAddRide}
+                    className="inline-flex items-center justify-center rounded-xl bg-zubr-dark px-5 py-3 font-bold text-white transition hover:bg-zubr-gold"
+                >
+                    Dodaj przejazd
+                </button>
+            </div>
 
             <div className="flex border-b border-gray-200 mb-8">
                 <button
@@ -182,6 +219,47 @@ function MyRides() {
                     </div>
                 )}
             </div>
+
+            <AnimatePresence>
+                {showMissingCarModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                            className="w-full max-w-xl rounded-3xl border-t-4 border-red-500 bg-white p-8 text-center shadow-2xl"
+                        >
+                            <AlertCircle className="mx-auto mb-4 text-red-500" size={48} />
+                            <h2 className="mb-4 text-3xl font-bold text-zubr-dark">Nie masz dodanego samochodu!</h2>
+                            <p className="mx-auto mb-8 max-w-md text-lg text-gray-600">
+                                Aby opublikować przejazd, najpierw dodaj pojazd w swoim profilu.
+                            </p>
+                            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/profile")}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-zubr-dark px-5 py-3 font-bold text-white transition hover:bg-zubr-gold"
+                                >
+                                    <Car size={18} />
+                                    Przejdz do profilu
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMissingCarModal(false)}
+                                    className="rounded-xl border border-gray-300 px-5 py-3 font-bold text-gray-600 transition hover:bg-gray-50"
+                                >
+                                    Zamknij
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

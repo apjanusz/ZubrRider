@@ -10,7 +10,6 @@ import {
     Users,
     Car,
     Plus,
-    AlertCircle,
     CheckCircle2,
     Route,
     LoaderCircle
@@ -72,11 +71,13 @@ function PublishRide() {
                 setCars(res.data);
                 if (res.data.length > 0) {
                     setFormData(prev => ({ ...prev, car_id: res.data[0].id }));
+                } else {
+                    navigate("/my-rides");
                 }
             })
             .catch(err => console.error("Błąd pobierania aut: ", err))
             .finally(() => setLoadingCars(false));
-    }, []);
+    }, [navigate]);
 
     useEffect(() => {
         const fetchRoutePreview = async () => {
@@ -284,28 +285,19 @@ function PublishRide() {
     }
 
     if (cars.length === 0) {
-        return (
-            <div className="text-center py-12 bg-white rounded-xl shadow p-8 max-w-lg mx-auto border-t-4 border-red-500">
-                <AlertCircle className="mx-auto text-red-500 mb-4" size={48} />
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Nie masz dodanego samochodu!</h2>
-                <p className="text-gray-600 mb-6">
-                    Aby opublikować przejazd, najpierw dodaj pojazd w swoim profilu.
-                </p>
-                <button
-                    type="button"
-                    onClick={() => navigate("/profile")}
-                    className="inline-flex items-center gap-2 rounded-lg bg-zubr-dark px-5 py-3 font-semibold text-white transition hover:bg-zubr-gold"
-                >
-                    <Car size={18} />
-                    Przejdź do profilu
-                </button>
-            </div>
-        );
+        return <div className="text-center mt-10 text-gray-500">Przekierowanie do Twoich przejazdów...</div>;
     }
 
     return (
         <div className="max-w-5xl mx-auto py-10 px-4">
             <div className="mb-8">
+                <button
+                    type="button"
+                    onClick={() => navigate("/my-rides")}
+                    className="mb-4 text-sm font-bold text-zubr-dark hover:underline"
+                >
+                    Wroc do moich przejazdow
+                </button>
                 <h1 className="text-3xl font-bold text-zubr-dark mb-2">Dodaj nowy przejazd</h1>
                 <p className="text-gray-600">Wypełnij dane przejazdu, wybierz adresy i sprawdź trasę na mapie.</p>
             </div>

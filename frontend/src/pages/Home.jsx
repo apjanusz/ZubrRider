@@ -60,9 +60,9 @@ function Home() {
                         Znajdź wolne miejsce w samochodzie lub zabierz pasażerów.
                     </p>
                     <div className="flex gap-4">
-                        <Link to="/publish-ride"
+                        <Link to="/my-rides"
                               className="bg-zubr-gold text-zubr-dark px-6 py-3 rounded-lg font-bold hover:bg-yellow-400 transition shadow-lg flex items-center gap-2">
-                            <Plus size={20} /> Dodaj przejazd
+                            <Plus size={20} /> Moje przejazdy
                         </Link>
                         <a href="#rides"
                            className="border border-white text-white px-6 py-3 rounded-lg font-bold hover:bg-white hover:text-zubr-dark transition flex items-center gap-2">

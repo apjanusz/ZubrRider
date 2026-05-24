@@ -25,9 +25,8 @@ function Navbar() {
     const links = isAuthenticated
         ? [
             { name: "Szukaj", path: "/" },
-            { name: "Dodaj", path: "/publish-ride" },      // Zmieniona nazwa
-            { name: "Moje Przejazdy", path: "/my-rides" }, // NOWY LINK
-            { name: "Profil", path: "/profile" },          // Zmieniona nazwa
+            { name: "Moje Przejazdy", path: "/my-rides" },
+            { name: "Profil", path: "/profile" },
             { name: "Wyloguj", path: "#logout", action: handleLogout },
         ]
         : [
