@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Car } from "lucide-react";
+import DriverCard from "../components/DriverCard";
 
 function MyRides() {
     const navigate = useNavigate();
@@ -109,6 +110,8 @@ function MyRides() {
                     Jako Pasażer ({rides.as_passenger.length})
                 </button>
             </div>
+
+            {activeTab === "driver" && <DriverCard />}
 
             <div className="space-y-10">
                 <div>
