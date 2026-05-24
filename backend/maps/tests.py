@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.test import SimpleTestCase
 from rest_framework.test import APIClient
 
-from maps.services import MapsNoResultsError, OpenRouteServiceClient
+from maps.services import MapsNoResultsError, OpenRouteServiceClient, build_cache_key
 
 
 class MapsApiTests(SimpleTestCase):
@@ -69,6 +69,12 @@ class MapsApiTests(SimpleTestCase):
 class MapsServiceCacheTests(SimpleTestCase):
     def setUp(self):
         cache.clear()
+
+    def test_build_cache_key_hashes_non_ascii_payload(self):
+        cache_key = build_cache_key("geocode", "białystok wiejska 45:5:True:PL")
+
+        self.assertTrue(cache_key.startswith("maps:geocode:"))
+        self.assertRegex(cache_key, r"^maps:geocode:[0-9a-f]{64}$")
 
     @patch("maps.services.requests.get")
     def test_geocode_uses_cache_for_same_query(self, mock_get):

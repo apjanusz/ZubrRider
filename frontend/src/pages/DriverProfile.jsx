@@ -45,7 +45,7 @@ function DriverProfile() {
     };
 
     return (
-        <div className="max-w-5xl mx-auto pb-10">
+        <div className="w-full pb-10">
             {/* Header Profilu */}
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8 border-t-4 border-zubr-gold">
                 <div className="bg-zubr-dark h-40 w-full relative">

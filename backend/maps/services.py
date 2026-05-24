@@ -1,3 +1,4 @@
+import hashlib
 from typing import Any
 
 import requests
@@ -6,7 +7,8 @@ from django.core.cache import cache
 
 
 def build_cache_key(prefix: str, payload: str) -> str:
-    return f"maps:{prefix}:{payload}"
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return f"maps:{prefix}:{digest}"
 
 
 class MapsServiceError(Exception):
