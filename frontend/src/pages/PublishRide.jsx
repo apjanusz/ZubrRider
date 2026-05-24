@@ -6,6 +6,8 @@ import {
     MapPin,
     Flag,
     Calendar,
+    Clock3,
+    ChevronDown,
     CircleDollarSign,
     Users,
     Car,
@@ -142,6 +144,59 @@ function normalizeSuggestion(suggestion) {
         latitude: suggestion.latitude,
         longitude: suggestion.longitude,
     };
+}
+
+function toDateInputValue(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function splitTimeParts(timeValue) {
+    if (!timeValue || !timeValue.includes(":")) {
+        return { hour: "", minute: "" };
+    }
+
+    const [hour, minute] = timeValue.split(":");
+    return { hour, minute: minute?.slice(0, 2) || "" };
+}
+
+function TimeDropdown({ label, value, placeholder, options, onSelect }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <div className="relative space-y-1">
+            <label className="block text-xs font-bold uppercase text-gray-500">{label}</label>
+            <button
+                type="button"
+                onClick={() => setOpen(prev => !prev)}
+                className="flex w-full items-center justify-between rounded border bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-zubr-gold"
+            >
+                <span>{value || placeholder}</span>
+                <ChevronDown size={16} className={`transition ${open ? "rotate-180" : ""}`} />
+            </button>
+            {open && (
+                <div className="absolute z-20 mt-1 max-h-44 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                    {options.map((option) => (
+                        <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                                onSelect(option);
+                                setOpen(false);
+                            }}
+                            className={`block w-full px-3 py-2 text-left text-sm transition hover:bg-gray-50 ${
+                                value === option ? "bg-zubr-cream font-semibold text-zubr-dark" : "text-gray-700"
+                            }`}
+                        >
+                            {option}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }
 
 function PublishRide() {
@@ -395,22 +450,42 @@ function PublishRide() {
         return <div className="text-center mt-10 text-gray-500">Przekierowanie do Twoich przejazdów...</div>;
     }
 
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    const dayAfterTomorrow = new Date();
+    dayAfterTomorrow.setDate(today.getDate() + 2);
+
+    const quickDateOptions = [
+        { label: "Dzis", value: toDateInputValue(today) },
+        { label: "Jutro", value: toDateInputValue(tomorrow) },
+        { label: "Pojutrze", value: toDateInputValue(dayAfterTomorrow) },
+    ];
+    const quickTimeOptions = ["06:00", "08:00", "12:00", "18:00"];
+    const customHourOptions = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
+    const customMinuteOptions = ["00", "15", "30", "45"];
+
+    const isCustomDate = formData.date && !quickDateOptions.some(option => option.value === formData.date);
+    const isCustomTime = formData.time && !quickTimeOptions.includes(formData.time);
+    const customTimeParts = splitTimeParts(formData.time);
     const canSubmitRide = Boolean(selectedAddresses.start && selectedAddresses.end && formData.car_id);
     const showStartStatus = loadingSuggestions.start || selectedAddresses.start;
     const showEndStatus = loadingSuggestions.end || selectedAddresses.end;
 
     return (
         <div className="max-w-5xl mx-auto py-10 px-4">
-            <div className="mb-8">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-zubr-dark mb-2">Dodaj nowy przejazd</h1>
+                    <p className="text-gray-600">Wpisz adresy w formacie ulica i numer, potem miasto, a następnie wybierz właściwe sugestie.</p>
+                </div>
                 <button
                     type="button"
                     onClick={() => navigate("/my-rides")}
-                    className="mb-4 text-sm font-bold text-zubr-dark hover:underline"
+                    className="inline-flex items-center justify-center rounded-xl bg-zubr-dark px-5 py-3 font-bold text-white transition hover:bg-zubr-gold"
                 >
-                    Wroc do moich przejazdow
+                    Wróć do moich przejazdów
                 </button>
-                <h1 className="text-3xl font-bold text-zubr-dark mb-2">Dodaj nowy przejazd</h1>
-                <p className="text-gray-600">Wpisz adresy w formacie ulica i numer, potem miasto, a następnie wybierz właściwe sugestie.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -525,31 +600,129 @@ function PublishRide() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 mb-1">
-                            <Calendar size={14} /> Data wyjazdu
+                    <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+                        <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
+                            <Calendar size={14} /> Termin wyjazdu
                         </label>
-                        <input
-                            type="date"
-                            name="date"
-                            value={formData.date}
-                            required
-                            onChange={handleChange}
-                            className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm bg-white"
-                        />
+                        <div className="flex flex-wrap gap-2">
+                            {quickDateOptions.map((option) => {
+                                const isActive = formData.date === option.value;
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, date: option.value }))}
+                                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                            isActive
+                                                ? "bg-zubr-dark text-white"
+                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                );
+                            })}
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, date: "" }))}
+                                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                    isCustomDate || !formData.date
+                                        ? "bg-zubr-gold text-zubr-dark"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                }`}
+                            >
+                                Inna data
+                            </button>
+                        </div>
+                        {(isCustomDate || !formData.date) && (
+                            <div className="space-y-1">
+                                <label className="block text-xs font-bold uppercase text-gray-500">Data</label>
+                                <input
+                                    type="date"
+                                    name="date"
+                                    value={formData.date}
+                                    required
+                                    min={toDateInputValue(today)}
+                                    onChange={handleChange}
+                                    className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm bg-white"
+                                />
+                            </div>
+                        )}
+                        {formData.date && (
+                            <p className="text-sm text-gray-600">
+                                Wybrana data: <span className="font-semibold text-zubr-dark">{formData.date}</span>
+                            </p>
+                        )}
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">
-                            Godzina
+                    <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+                        <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
+                            <Clock3 size={14} /> Godzina wyjazdu
                         </label>
-                        <input
-                            type="time"
-                            name="time"
-                            value={formData.time}
-                            required
-                            onChange={handleChange}
-                            className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm bg-white"
-                        />
+                        <div className="flex flex-wrap gap-2">
+                            {quickTimeOptions.map((option) => {
+                                const isActive = formData.time === option;
+                                return (
+                                    <button
+                                        key={option}
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, time: option }))}
+                                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                            isActive
+                                                ? "bg-zubr-dark text-white"
+                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                    >
+                                        {option}
+                                    </button>
+                                );
+                            })}
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, time: "" }))}
+                                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                    isCustomTime || !formData.time
+                                        ? "bg-zubr-gold text-zubr-dark"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                }`}
+                            >
+                                Inna godzina
+                            </button>
+                        </div>
+                        {(isCustomTime || !formData.time) && (
+                            <div className="grid grid-cols-2 gap-3">
+                                <TimeDropdown
+                                    label="Godzina"
+                                    value={customTimeParts.hour}
+                                    placeholder="--"
+                                    options={customHourOptions}
+                                    onSelect={(nextHour) => {
+                                        const nextMinute = customTimeParts.minute || "00";
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            time: `${nextHour}:${nextMinute}`,
+                                        }));
+                                    }}
+                                />
+                                <TimeDropdown
+                                    label="Minuty"
+                                    value={customTimeParts.minute}
+                                    placeholder="--"
+                                    options={customMinuteOptions}
+                                    onSelect={(nextMinute) => {
+                                        const nextHour = customTimeParts.hour || "06";
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            time: `${nextHour}:${nextMinute}`,
+                                        }));
+                                    }}
+                                />
+                            </div>
+                        )}
+                        {formData.time && (
+                            <p className="text-sm text-gray-600">
+                                Wybrana godzina: <span className="font-semibold text-zubr-dark">{formData.time}</span>
+                            </p>
+                        )}
                     </div>
                     <div className="space-y-1">
                         <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 mb-1">
