@@ -47,8 +47,16 @@ class MyRidesView(views.APIView):
 
         return Response(
             {
-                "as_driver": RideDetailSerializer(driver_rides, many=True).data,
-                "as_passenger": RideDetailSerializer(passenger_rides, many=True).data,
+                "as_driver": RideDetailSerializer(
+                    driver_rides,
+                    many=True,
+                    context={"request": request},
+                ).data,
+                "as_passenger": RideDetailSerializer(
+                    passenger_rides,
+                    many=True,
+                    context={"request": request},
+                ).data,
             }
         )
 class RideListView(generics.ListAPIView):

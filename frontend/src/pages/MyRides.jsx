@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, Car } from "lucide-react";
+import { AlertCircle, Car, MessageSquare, Star } from "lucide-react";
 import DriverCard from "../components/DriverCard";
 
 function MyRides() {
@@ -13,6 +13,10 @@ function MyRides() {
     const [activeTab, setActiveTab] = useState("driver");
     const [showAllPast, setShowAllPast] = useState(false);
     const [showMissingCarModal, setShowMissingCarModal] = useState(false);
+    const [ratingRide, setRatingRide] = useState(null);
+    const [ratingForm, setRatingForm] = useState({ score: 5, comment: "" });
+    const [ratingSubmitting, setRatingSubmitting] = useState(false);
+    const [ratingError, setRatingError] = useState("");
 
     useEffect(() => {
         fetchMyRides();
@@ -60,6 +64,48 @@ function MyRides() {
             } catch (err) {
                 alert(err.response?.data?.error || "Nie udało się anulować rezerwacji.");
             }
+        }
+    };
+
+    const handleOpenRating = (ride) => {
+        setRatingRide(ride);
+        setRatingForm({ score: 5, comment: "" });
+        setRatingError("");
+    };
+
+    const handleCloseRating = () => {
+        if (ratingSubmitting) {
+            return;
+        }
+        setRatingRide(null);
+        setRatingError("");
+    };
+
+    const handleSubmitRating = async (e) => {
+        e.preventDefault();
+        if (!ratingRide) {
+            return;
+        }
+
+        setRatingSubmitting(true);
+        setRatingError("");
+
+        try {
+            await api.post(`/api/community/rate/${ratingRide.id}/`, ratingForm);
+            alert("Dziękujemy! Ocena została zapisana.");
+            await fetchMyRides();
+            setRatingRide(null);
+        } catch (error) {
+            const data = error.response?.data;
+            const detail =
+                data?.ride ||
+                data?.score ||
+                data?.comment ||
+                data?.detail ||
+                "Nie udało się zapisać oceny kierowcy.";
+            setRatingError(Array.isArray(detail) ? detail.join(" ") : detail);
+        } finally {
+            setRatingSubmitting(false);
         }
     };
 
@@ -197,15 +243,31 @@ function MyRides() {
                             {displayedHistory.map((ride) => (
                                 <motion.div
                                     key={ride.id}
-                                    initial={{ opacity: 0.6 }}
-                                    className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm grayscale opacity-75"
+                                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
                                 >
-                                    <div className="border-b border-gray-200 bg-gray-50 p-4">
-                                        <span className="font-bold text-gray-500">{ride.start_location?.city} - {ride.end_location?.city}</span>
-                                        <p className="text-xs text-gray-400 mt-1">{ride.departure_date} | {ride.departure_time?.slice(0, 5)}</p>
+                                    <div className="border-b border-gray-200 bg-white p-4">
+                                        <span className="text-lg font-bold text-zubr-dark">{ride.start_location?.city} - {ride.end_location?.city}</span>
+                                        <p className="mt-1 text-sm text-gray-500">{ride.departure_date} | {ride.departure_time?.slice(0, 5)}</p>
                                     </div>
-                                    <div className="p-3 text-center">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Przejazd archiwalny</span>
+                                    <div className="flex flex-col gap-3 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="text-left">
+                                            <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-500">Przejazd archiwalny</span>
+                                        </div>
+                                        {activeTab === "passenger" &&
+                                            (ride.current_user_has_rated ? (
+                                                <div className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
+                                                    <Star size={16} className="fill-green-700 text-green-700" />
+                                                    Ocena dodana
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenRating(ride)}
+                                                    className="inline-flex items-center justify-center rounded-xl bg-zubr-gold px-4 py-3 text-sm font-bold text-white opacity-100 transition hover:bg-yellow-400"
+                                                >
+                                                    Oceń kierowcę
+                                                </button>
+                                            ))}
                                     </div>
                                 </motion.div>
                             ))}
@@ -224,6 +286,106 @@ function MyRides() {
             </div>
 
             <AnimatePresence>
+                {ratingRide && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl sm:p-8"
+                        >
+                            <div className="mb-6">
+                                <h2 className="text-2xl font-bold text-zubr-dark">Oceń kierowcę</h2>
+                                <p className="mt-2 text-sm text-gray-600">
+                                    Przejazd {ratingRide.start_location?.city} - {ratingRide.end_location?.city}
+                                </p>
+                                <div className="mt-4 flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-zubr-dark text-base font-bold text-white">
+                                        {ratingRide.driver?.first_name?.[0] || "?"}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+                                            Oceniasz kierowcę
+                                        </p>
+                                        <p className="text-base font-semibold text-gray-800">
+                                            {ratingRide.driver?.first_name || "Kierowca"} {ratingRide.driver?.last_name || ""}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleSubmitRating} className="space-y-5">
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold uppercase text-gray-500">
+                                        Ocena
+                                    </label>
+                                    <div className="grid grid-cols-5 gap-2">
+                                        {[1, 2, 3, 4, 5].map((value) => {
+                                            const isActive = ratingForm.score === value;
+                                            return (
+                                                <button
+                                                    key={value}
+                                                    type="button"
+                                                    onClick={() => setRatingForm((prev) => ({ ...prev, score: value }))}
+                                                    className={`flex items-center justify-center gap-1 rounded-xl border px-3 py-3 font-bold transition ${
+                                                        isActive
+                                                            ? "border-zubr-gold bg-zubr-gold text-zubr-dark"
+                                                            : "border-gray-200 bg-white text-gray-600 hover:border-zubr-gold/50"
+                                                    }`}
+                                                >
+                                                    <Star size={16} className={isActive ? "fill-zubr-dark text-zubr-dark" : "text-zubr-gold"} />
+                                                    {value}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold uppercase text-gray-500">
+                                        Komentarz
+                                    </label>
+                                    <textarea
+                                        value={ratingForm.comment}
+                                        onChange={(e) => setRatingForm((prev) => ({ ...prev, comment: e.target.value }))}
+                                        rows={4}
+                                        placeholder="Napisz kilka słów o przejeździe..."
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-zubr-gold"
+                                    />
+                                </div>
+
+                                {ratingError && (
+                                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                        {ratingError}
+                                    </div>
+                                )}
+
+                                <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleCloseRating}
+                                        className="inline-flex items-center justify-center rounded-xl border border-zubr-dark px-5 py-3 font-bold text-zubr-dark transition hover:bg-zubr-dark hover:text-white"
+                                    >
+                                        Anuluj
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={ratingSubmitting}
+                                        className="inline-flex items-center justify-center rounded-xl bg-zubr-dark px-5 py-3 font-bold text-white transition hover:bg-zubr-gold disabled:opacity-60"
+                                    >
+                                        {ratingSubmitting ? "Zapisywanie..." : "Wyślij ocenę"}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+
                 {showMissingCarModal && (
                     <motion.div
                         initial={{ opacity: 0 }}
