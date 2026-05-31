@@ -36,16 +36,16 @@ function Login() {
     };
 
     return (
-        <div className="flex justify-center items-center min-h-[80vh]">
+        <div className="flex w-full items-center justify-center">
             {/* logowanie karta */}
-            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-zubr-dark">
+            <div className="w-full max-w-md rounded-xl border-t-4 border-zubr-dark bg-white p-5 shadow-2xl sm:p-8">
 
                 {/* header */}
-                <h1 className="text-3xl font-bold text-center mb-8 text-zubr-dark">
+                <h1 className="mb-6 text-center text-2xl font-bold text-zubr-dark sm:mb-8 sm:text-3xl">
                     Witaj ponownie!
                 </h1>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                     {/* email */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -78,7 +78,7 @@ function Login() {
 
                     {/* przycisk */}
                     <button
-                        className={`w-full py-3 rounded-lg font-bold text-white text-lg shadow-md transition duration-200 
+                        className={`w-full rounded-lg py-3 text-base font-bold text-white shadow-md transition duration-200 sm:text-lg 
                         ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-zubr-dark hover:bg-green-800 transform hover:-translate-y-0.5'}`}
                         type="submit"
                         disabled={loading}

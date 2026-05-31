@@ -47,25 +47,25 @@ function Home() {
     });
 
     return (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6 sm:gap-8">
             {/* Hero Section */}
-            <div className="bg-zubr-dark rounded-2xl p-10 text-white shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-green-700 rounded-full opacity-50 blur-3xl"></div>
+            <div className="relative overflow-hidden rounded-2xl bg-zubr-dark px-5 py-8 text-white shadow-xl sm:px-8 sm:py-10">
+                <div className="absolute right-0 top-0 -mr-10 -mt-10 h-40 w-40 rounded-full bg-green-700 opacity-50 blur-3xl sm:-mr-16 sm:-mt-16 sm:h-64 sm:w-64"></div>
                 <div className="relative z-10 max-w-2xl">
-                    <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                    <h1 className="mb-4 text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">
                         Podróżuj razem <br/>
                         <span className="text-zubr-gold">taniej i wygodniej</span>
                     </h1>
-                    <p className="text-green-100 text-lg mb-8 opacity-90">
+                    <p className="mb-6 text-base text-green-100 opacity-90 sm:mb-8 sm:text-lg">
                         Znajdź wolne miejsce w samochodzie lub zabierz pasażerów.
                     </p>
-                    <div className="flex gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                         <Link to="/my-rides"
-                              className="bg-zubr-gold text-zubr-dark px-6 py-3 rounded-lg font-bold hover:bg-yellow-400 transition shadow-lg flex items-center gap-2">
+                              className="flex items-center justify-center gap-2 rounded-lg bg-zubr-gold px-6 py-3 text-center font-bold text-zubr-dark shadow-lg transition hover:bg-yellow-400">
                             Moje przejazdy
                         </Link>
                         <a href="#rides"
-                           className="border border-white text-white px-6 py-3 rounded-lg font-bold hover:bg-white hover:text-zubr-dark transition flex items-center gap-2">
+                           className="flex items-center justify-center gap-2 rounded-lg border border-white px-6 py-3 text-center font-bold text-white transition hover:bg-white hover:text-zubr-dark">
                             <Search size={20} /> Szukaj trasy
                         </a>
                     </div>
@@ -73,8 +73,8 @@ function Home() {
             </div>
 
             {/* Wyszukiwanie (Live) */}
-            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 -mt-16 mx-4 md:mx-0 relative z-20">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="relative z-20 -mt-10 rounded-xl border border-gray-100 bg-white p-4 shadow-md sm:-mt-16 sm:p-6">
+                <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-4">
                     <div className="relative">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Skąd?</label>
                         <div className="relative">
@@ -114,7 +114,7 @@ function Home() {
                         </div>
                     </div>
                     <button
-                        className="bg-zubr-dark text-white p-3 rounded-lg font-bold hover:bg-green-800 transition h-[50px] flex items-center justify-center gap-2"
+                        className="flex h-[50px] items-center justify-center gap-2 rounded-lg bg-zubr-dark p-3 font-bold text-white transition hover:bg-green-800"
                         onClick={() => document.getElementById('rides').scrollIntoView({ behavior: 'smooth' })}
                     >
                         <Search size={20} /> Szukaj
@@ -123,16 +123,16 @@ function Home() {
             </div>
 
             {/* Lista przejazdów */}
-            <div id="rides" className="mt-4">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-zubr-dark flex items-center gap-2">
+            <div id="rides" className="mt-2 sm:mt-4">
+                <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="flex items-start gap-2 text-xl font-bold text-zubr-dark sm:items-center sm:text-2xl">
                         <Calendar className="text-zubr-gold" />
                         {search.from || search.to || search.date ? "Wyniki wyszukiwania" : "Dostępne nadchodzące przejazdy"}
                     </h2>
                     {(search.from || search.to || search.date) && (
                         <button
                             onClick={() => setSearch({from: "", to: "", date: ""})}
-                            className="text-sm text-red-500 font-bold hover:underline"
+                            className="self-start text-sm font-bold text-red-500 hover:underline sm:self-auto"
                         >
                             Wyczyść filtry
                         </button>
@@ -142,33 +142,33 @@ function Home() {
                 {loading && <p className="text-center py-10 text-gray-500">Ładowanie przejazdów...</p>}
 
                 {!loading && filteredRides.length === 0 && (
-                    <div className="text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                    <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-14 text-center sm:py-20">
                         <Search size={48} className="mx-auto text-gray-300 mb-4" />
                         <p className="text-gray-500 text-lg">Brak przejazdów spełniających Twoje kryteria.</p>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {filteredRides.map((ride) => (
                         <div key={ride.id}
-                             className="bg-white rounded-xl shadow-md hover:shadow-xl transition duration-300 border border-gray-100 overflow-hidden group">
+                             className="group overflow-hidden rounded-xl border border-gray-100 bg-white shadow-md transition duration-300 hover:shadow-xl">
                             {/* ... (reszta kafelka pozostaje bez zmian) ... */}
-                            <div className="p-5 border-b border-gray-100 bg-gray-50">
+                            <div className="border-b border-gray-100 bg-gray-50 p-4 sm:p-5">
                                 <div className="flex flex-col gap-1">
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                        <span className="font-bold text-gray-800 text-lg">{ride.start_location?.city}</span>
+                                        <span className="text-base font-bold text-gray-800 sm:text-lg">{ride.start_location?.city}</span>
                                     </div>
                                     <div className="ml-1 my-1 border-l-2 border-dashed border-gray-300 h-6"></div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                                        <span className="font-bold text-gray-800 text-lg">{ride.end_location?.city}</span>
+                                        <span className="text-base font-bold text-gray-800 sm:text-lg">{ride.end_location?.city}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="p-5">
-                                <div className="flex justify-between items-center mb-4">
+                            <div className="p-4 sm:p-5">
+                                <div className="mb-4 flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-zubr-light flex items-center justify-center text-zubr-dark font-bold">
                                             {ride.driver?.first_name?.[0] || "?"}
@@ -181,10 +181,10 @@ function Home() {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <span className="block text-2xl font-bold text-zubr-dark">{ride.cost_per_passenger} PLN</span>
+                                        <span className="block text-xl font-bold text-zubr-dark sm:text-2xl">{ride.cost_per_passenger} PLN</span>
                                     </div>
                                 </div>
-                                <div className="flex justify-between text-sm text-gray-600 border-t border-gray-100 pt-3">
+                                <div className="flex flex-col gap-2 border-t border-gray-100 pt-3 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
                                     <span className="flex items-center gap-1"><Clock size={14} /> {ride.departure_time?.slice(0, 5)}</span>
                                     <span>Wolne miejsca: {ride.available_seats}</span>
                                 </div>
@@ -192,9 +192,9 @@ function Home() {
 
                             <Link
                                 to={`/ride/${ride.id}`}
-                                className="block bg-zubr-dark text-white text-center py-3 font-bold hover:bg-green-800 transition flex items-center justify-center gap-2"
+                                className="flex items-center justify-center gap-2 bg-zubr-dark py-3 text-center font-bold text-white transition hover:bg-green-800"
                             >
-                                Zobacz szczegóły <ArrowRight size={18} />
+                                Zobacz szczegóły
                             </Link>
                         </div>
                     ))}

@@ -89,20 +89,20 @@ function RideDetails() {
 
     return (
         <div className="w-full pb-12">
-            <div className="bg-white rounded-xl shadow-lg p-8 mb-6 border-l-8 border-zubr-gold">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div className="mb-6 rounded-xl border-l-8 border-zubr-gold bg-white p-5 shadow-lg sm:p-8">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <div className="flex items-center gap-3 text-zubr-dark mb-1">
-                            <span className="font-bold text-2xl">{ride.start_location.city}</span>
-                            <span className="text-2xl">➝</span>
-                            <span className="font-bold text-2xl">{ride.end_location.city}</span>
+                        <div className="mb-1 flex flex-wrap items-center gap-2 text-zubr-dark sm:gap-3">
+                            <span className="text-xl font-bold sm:text-2xl">{ride.start_location.city}</span>
+                            <span className="text-xl sm:text-2xl">➝</span>
+                            <span className="text-xl font-bold sm:text-2xl">{ride.end_location.city}</span>
                         </div>
-                        <p className="text-gray-500">
+                        <p className="text-sm text-gray-500 sm:text-base">
                             {ride.departure_date} o godz. {ride.departure_time.slice(0, 5)}
                         </p>
                     </div>
-                    <div className="mt-4 md:mt-0 text-right">
-                        <span className="block text-3xl font-bold text-zubr-dark">
+                    <div className="text-left md:text-right">
+                        <span className="block text-2xl font-bold text-zubr-dark sm:text-3xl">
                             {ride.cost_per_passenger} PLN
                         </span>
                         <span className="text-sm text-gray-500">za osobę</span>
@@ -110,16 +110,16 @@ function RideDetails() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div className="space-y-6 md:col-span-2">
                     <div className="bg-white rounded-xl shadow-md overflow-hidden">
                         <RideMap
                             start={ride.start_location}
                             end={ride.end_location}
                             geometry={routeData?.geometry}
-                            heightClassName="h-72"
+                            heightClassName="h-64 sm:h-72"
                         />
-                        <div className="flex items-center justify-between gap-4 px-5 py-4 border-t border-gray-100 text-sm">
+                        <div className="flex flex-col gap-2 border-t border-gray-100 px-4 py-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
                             <div className="text-gray-500">
                                 {routeLoading
                                     ? "Wyznaczanie trasy..."
@@ -137,13 +137,13 @@ function RideDetails() {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-xl shadow-md relative overflow-hidden">
-                        <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-gray-200"></div>
+                    <div className="relative overflow-hidden rounded-xl bg-white p-5 shadow-md sm:p-6">
+                        <div className="absolute bottom-5 left-5 top-5 w-0.5 bg-gray-200 sm:bottom-6 sm:left-6 sm:top-6"></div>
 
-                        <div className="relative pl-8 mb-8">
+                        <div className="relative mb-8 pl-8">
                             <div className="absolute left-0 top-1 w-3 h-3 bg-green-600 rounded-full ring-4 ring-white"></div>
                             <h3 className="text-sm font-bold text-gray-400 uppercase">Start</h3>
-                            <p className="font-bold text-lg text-gray-800">
+                            <p className="text-base font-bold text-gray-800 sm:text-lg">
                                 ul. {ride.start_location.street} {ride.start_location.st_number}
                             </p>
                             <p className="text-gray-600">{ride.start_location.city}</p>
@@ -152,14 +152,14 @@ function RideDetails() {
                         <div className="relative pl-8">
                             <div className="absolute left-0 top-1 w-3 h-3 bg-red-500 rounded-full ring-4 ring-white"></div>
                             <h3 className="text-sm font-bold text-gray-400 uppercase">Koniec</h3>
-                            <p className="font-bold text-lg text-gray-800">
+                            <p className="text-base font-bold text-gray-800 sm:text-lg">
                                 ul. {ride.end_location.street} {ride.end_location.st_number}
                             </p>
                             <p className="text-gray-600">{ride.end_location.city}</p>
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-xl shadow-md flex justify-between items-center">
+                    <div className="flex flex-col gap-4 rounded-xl bg-white p-5 shadow-md sm:p-6 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 bg-zubr-dark rounded-full flex items-center justify-center text-white text-xl font-bold">
                                 {ride.driver.first_name[0]}
@@ -171,7 +171,7 @@ function RideDetails() {
                                 </Link>
                             </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left md:text-right">
                             <p className="text-gray-500 text-sm">Samochód</p>
                             <p className="font-bold">{ride.car.brand} {ride.car.model}</p>
                         </div>
@@ -179,7 +179,7 @@ function RideDetails() {
                 </div>
 
                 <div className="md:col-span-1">
-                    <div className="bg-white p-6 rounded-xl shadow-md sticky top-24">
+                    <div className="rounded-xl bg-white p-5 shadow-md sm:p-6 md:sticky md:top-24">
                         <h3 className="text-xl font-bold text-gray-800 mb-4">Podsumowanie</h3>
 
                         <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
@@ -189,7 +189,7 @@ function RideDetails() {
 
                         {ride.available_seats > 0 ? (
                             <button
-                                className="w-full bg-zubr-gold text-zubr-dark py-3 rounded-lg font-bold text-lg hover:bg-yellow-400 transition shadow-md"
+                                className="w-full rounded-lg bg-zubr-gold py-3 text-lg font-bold text-zubr-dark shadow-md transition hover:bg-yellow-400"
                                 onClick={async () => {
                                     try {
                                         await api.post(`/api/rides/${ride.id}/book/`);
@@ -204,7 +204,7 @@ function RideDetails() {
                                 Zarezerwuj miejsce
                             </button>
                         ) : (
-                            <button disabled className="w-full bg-gray-300 text-gray-600 py-3 rounded-lg font-bold text-lg cursor-not-allowed">
+                            <button disabled className="w-full cursor-not-allowed rounded-lg bg-gray-300 py-3 text-lg font-bold text-gray-600">
                                 Brak wolnych miejsc
                             </button>
                         )}

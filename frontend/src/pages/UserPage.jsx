@@ -318,21 +318,21 @@ function UserPage() {
     return (
         <div className="w-full pb-10">
             {/* Nagłówek profilu */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
-                <div className="bg-zubr-dark h-32 w-full relative">
-                    <div className="absolute -bottom-12 left-8">
-                        <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-white flex items-center justify-center text-zubr-dark text-3xl font-bold uppercase shadow-md">
+            <div className="mb-6 overflow-hidden rounded-xl bg-white shadow-lg">
+                <div className="relative h-28 w-full bg-zubr-dark sm:h-32">
+                    <div className="absolute -bottom-10 left-5 sm:-bottom-12 sm:left-8">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-gray-200 text-2xl font-bold uppercase text-zubr-dark shadow-md sm:h-24 sm:w-24 sm:text-3xl">
                             {getInitials()}
                         </div>
                     </div>
                 </div>
-                <div className="px-6 pb-8 pt-14 sm:px-8">
+                <div className="px-5 pb-6 pt-12 sm:px-8 sm:pb-8 sm:pt-14">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-3xl">
-                            <h1 className="text-2xl font-bold text-gray-800 sm:text-3xl">
+                            <h1 className="text-xl font-bold text-gray-800 sm:text-3xl">
                                 {user.first_name} {user.last_name}
                             </h1>
-                            <p className="text-gray-500">@{user.username || "użytkownik"}</p>
+                            <p className="text-sm text-gray-500 sm:text-base">@{user.username || "użytkownik"}</p>
                             <p className="mt-1 text-sm text-gray-400">
                                 Dołączył: {new Date(user.date_joined).toLocaleDateString()}
                             </p>
@@ -355,10 +355,10 @@ function UserPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* Karta: Dane kontaktowe */}
-                <div className="bg-white p-6 rounded-xl shadow-md">
-                    <h2 className="text-xl font-bold text-zubr-dark mb-4 border-b border-gray-100 pb-2">
+                <div className="rounded-xl bg-white p-5 shadow-md sm:p-6">
+                    <h2 className="mb-4 border-b border-gray-100 pb-2 text-lg font-bold text-zubr-dark sm:text-xl">
                         Dane kontaktowe
                     </h2>
                     <div className="space-y-3">
@@ -382,51 +382,51 @@ function UserPage() {
                 </div>
 
                 {/* Karta: Adres */}
-                <div className="bg-white p-6 rounded-xl shadow-md">
-                    <h2 className="text-xl font-bold text-zubr-dark mb-4 border-b border-gray-100 pb-2">
+                <div className="rounded-xl bg-white p-5 shadow-md sm:p-6">
+                    <h2 className="mb-4 border-b border-gray-100 pb-2 text-lg font-bold text-zubr-dark sm:text-xl">
                         Adres zamieszkania
                     </h2>
                     <div className="space-y-3">
-                        <div className="flex gap-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                             <Field
-                                label="Kod pocztowy" name="postal_code" value={formData.postal_code} width="w-1/3"
+                                label="Kod pocztowy" name="postal_code" value={formData.postal_code} width="w-full sm:w-1/3"
                                 isEditing={isEditing} onChange={handleChange} error={profileErrors.postal_code}
                             />
                             <Field
-                                label="Miasto" name="city" value={formData.city} width="w-2/3"
+                                label="Miasto" name="city" value={formData.city} width="w-full sm:w-2/3"
                                 isEditing={isEditing} onChange={handleChange} error={profileErrors.city}
                             />
                         </div>
-                        <div className="flex gap-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                             <Field
-                                label="Ulica" name="street" value={formData.street} width="w-2/3"
+                                label="Ulica" name="street" value={formData.street} width="w-full sm:w-2/3"
                                 isEditing={isEditing} onChange={handleChange} error={profileErrors.street}
                             />
                             <Field
-                                label="Nr domu" name="st_number" value={formData.st_number} width="w-1/3"
+                                label="Nr domu" name="st_number" value={formData.st_number} width="w-full sm:w-1/3"
                                 isEditing={isEditing} onChange={handleChange} error={profileErrors.st_number}
                             />
                         </div>
                         <Field
-                            label="Nr lokalu" name="apt_number" value={formData.apt_number} width="w-1/3"
+                            label="Nr lokalu" name="apt_number" value={formData.apt_number} width="w-full sm:w-1/3"
                             isEditing={isEditing} onChange={handleChange} error={profileErrors.apt_number}
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="mt-8 text-center space-x-4">
+            <div className="mt-8 flex flex-col gap-3 text-center sm:flex-row sm:justify-center sm:gap-4">
                 {isEditing ? (
                     <>
                         <button
                             onClick={handleCancel}
-                            className="inline-flex items-center justify-center rounded-xl border border-zubr-dark px-6 py-3 font-bold text-zubr-dark transition hover:bg-zubr-dark hover:text-white"
+                            className="inline-flex w-full items-center justify-center rounded-xl border border-zubr-dark px-6 py-3 font-bold text-zubr-dark transition hover:bg-zubr-dark hover:text-white sm:w-auto"
                         >
                             Anuluj
                         </button>
                         <button
                             onClick={handleSave}
-                            className="inline-flex items-center justify-center rounded-xl bg-zubr-dark px-6 py-3 font-bold text-white transition hover:bg-zubr-gold"
+                            className="inline-flex w-full items-center justify-center rounded-xl bg-zubr-dark px-6 py-3 font-bold text-white transition hover:bg-zubr-gold sm:w-auto"
                         >
                             Zapisz zmiany
                         </button>
@@ -434,15 +434,15 @@ function UserPage() {
                 ) : (
                     <button
                         onClick={() => setIsEditing(true)}
-                        className="inline-flex items-center justify-center rounded-xl border border-zubr-dark px-6 py-3 font-bold text-zubr-dark transition hover:bg-zubr-dark hover:text-white"
+                        className="inline-flex w-full items-center justify-center rounded-xl border border-zubr-dark px-6 py-3 font-bold text-zubr-dark transition hover:bg-zubr-dark hover:text-white sm:w-auto"
                     >
                         Edytuj Profil
                     </button>
                 )}
             </div>
 
-            <div className="mt-8 bg-white p-6 rounded-xl shadow-md">
-                <h2 className="text-xl font-bold text-zubr-dark mb-4 border-b border-gray-100 pb-2">
+            <div className="mt-8 rounded-xl bg-white p-5 shadow-md sm:p-6">
+                <h2 className="mb-4 border-b border-gray-100 pb-2 text-lg font-bold text-zubr-dark sm:text-xl">
                     Moje pojazdy
                 </h2>
 
@@ -452,7 +452,7 @@ function UserPage() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <div>
                         <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Dodaj pojazd</h3>
                         <form onSubmit={handleAddCar} className="space-y-3">
@@ -510,7 +510,7 @@ function UserPage() {
                             <button
                                 type="submit"
                                 disabled={carSubmitting}
-                                className="inline-flex items-center justify-center rounded-xl bg-zubr-dark px-5 py-3 font-bold text-white transition hover:bg-zubr-gold disabled:opacity-60"
+                                className="inline-flex w-full items-center justify-center rounded-xl bg-zubr-dark px-5 py-3 font-bold text-white transition hover:bg-zubr-gold disabled:opacity-60 sm:w-auto"
                             >
                                 {carSubmitting ? "Dodawanie..." : "Dodaj pojazd"}
                             </button>
@@ -528,7 +528,7 @@ function UserPage() {
                         ) : (
                             <div className="space-y-3">
                                 {cars.map((car) => (
-                                    <div key={car.id} className="border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+                                    <div key={car.id} className="flex flex-col gap-3 rounded-lg border border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                                         <div>
                                             <p className="font-semibold text-gray-800">{car.brand} {car.model}</p>
                                             <p className="text-sm text-gray-500">{car.license_plate} • {car.seats} miejsc</p>
@@ -537,7 +537,7 @@ function UserPage() {
                                             type="button"
                                             onClick={() => handleDeleteCar(car.id)}
                                             disabled={carDeletingId === car.id}
-                                            className="text-sm text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-50 transition disabled:opacity-60"
+                                            className="rounded border border-red-200 px-3 py-2 text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-60 sm:px-3 sm:py-1"
                                         >
                                             {carDeletingId === car.id ? "Usuwanie..." : "Usuń"}
                                         </button>
