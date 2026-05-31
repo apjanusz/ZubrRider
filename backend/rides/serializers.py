@@ -3,6 +3,7 @@ from rest_framework import serializers
 from .models import Ride
 from accounts.models import Location, Car
 from accounts.serializers import UserSerializer, CarSerializer
+from community.models import Rating
 from maps.services import MapsConfigurationError, MapsServiceError, OpenRouteServiceClient
 
 
@@ -38,6 +39,7 @@ class RideDetailSerializer(serializers.ModelSerializer):
     car = CarSerializer(read_only=True)
     start_location = LocationSerializer(read_only=True)
     end_location = LocationSerializer(read_only=True)
+    current_user_has_rated = serializers.SerializerMethodField()
 
     class Meta:
         model = Ride
@@ -52,7 +54,17 @@ class RideDetailSerializer(serializers.ModelSerializer):
             "cost_per_passenger",
             "available_seats",
             "status",
+            "current_user_has_rated",
         ]
+
+    def get_current_user_has_rated(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+
+        if not user or not user.is_authenticated:
+            return False
+
+        return Rating.objects.filter(ride=obj, rater=user).exists()
 
 
 # =========================

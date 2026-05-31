@@ -43,18 +43,18 @@ function Register() {
     };
 
     return (
-        <div className="flex justify-center items-center min-h-[80vh] py-10">
+        <div className="flex w-full items-center justify-center">
             {/* Karta rejestracji */}
-            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-zubr-gold">
+            <div className="w-full max-w-md rounded-xl border-t-4 border-zubr-gold bg-white p-5 shadow-2xl sm:p-8">
 
-                <h1 className="text-3xl font-bold text-center mb-2 text-zubr-dark">
+                <h1 className="mb-2 text-center text-2xl font-bold text-zubr-dark sm:text-3xl">
                     Dołącz do stada! 🦬
                 </h1>
-                <p className="text-center text-gray-500 mb-8">
+                <p className="mb-6 text-center text-sm text-gray-500 sm:mb-8 sm:text-base">
                     Załóż konto i podróżuj taniej.
                 </p>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
 
                     {/* Nazwa użytkownika */}
                     <div>
@@ -118,7 +118,7 @@ function Register() {
 
                     {/* Przycisk */}
                     <button
-                        className={`w-full py-3 rounded-lg font-bold text-zubr-dark text-lg shadow-md transition duration-200 mt-4
+                        className={`mt-4 w-full rounded-lg py-3 text-base font-bold text-zubr-dark shadow-md transition duration-200 sm:text-lg
                         ${loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-zubr-gold hover:bg-yellow-400 transform hover:-translate-y-0.5'}`}
                         type="submit"
                         disabled={loading}

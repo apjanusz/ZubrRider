@@ -5,8 +5,9 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from accounts.models import Car
-from rides.models import Ride
+from accounts.models import Car, Location
+from community.models import Rating
+from rides.models import Booking, Ride
 
 
 User = get_user_model()
@@ -36,6 +37,18 @@ class RideCreateSerializerTests(APITestCase):
             format="json",
         )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
+
+    def _create_location(self, name, city, street, st_number):
+        return Location.objects.create(
+            user=self.user,
+            name=name,
+            city=city,
+            postal_code="15-001",
+            street=street,
+            st_number=st_number,
+            latitude="53.132500",
+            longitude="23.168800",
+        )
 
     @patch("rides.serializers.OpenRouteServiceClient")
     def test_create_ride_geocodes_locations_when_coordinates_are_missing(self, client_cls):
@@ -186,3 +199,29 @@ class RideCreateSerializerTests(APITestCase):
             my_rides_response.data["as_driver"][0]["car"]["license_plate"],
             "BI12345",
         )
+
+    def test_my_rides_includes_rating_flag_for_authenticated_user(self):
+        ride = Ride.objects.create(
+            driver=self.other_user,
+            car=self.other_car,
+            start_location=self._create_location("Start", "Bialystok", "Koncowa", "50"),
+            end_location=self._create_location("Koniec", "Lapy", "Dluga", "39"),
+            departure_date="2026-04-21",
+            departure_time="06:00:00",
+            cost_per_passenger="20.00",
+            available_seats=2,
+            status="active",
+        )
+        Booking.objects.create(ride=ride, passenger=self.user, seat_count=1, status="active")
+        Rating.objects.create(
+            ride=ride,
+            rater=self.user,
+            rated_user=self.other_user,
+            score=5,
+            comment="Test",
+        )
+
+        response = self.client.get(reverse("my_rides"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["as_passenger"][0]["current_user_has_rated"])
