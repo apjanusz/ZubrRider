@@ -10,6 +10,7 @@ import PublishRide from "./pages/PublishRide" // NOWY
 import MyRides from "./pages/MyRides"         // NOWY
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute"
+import PublicOnlyRoute from "./components/PublicOnlyRoute"
 import Layout from "./components/Layout"
 
 function Logout() {
@@ -47,9 +48,9 @@ function App() {
           }/>
           
           {/* TRASY PUBLICZNE */}
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
             <Route path="/logout" element={<Logout />} />
-            <Route path="/register" element={<RegisterAndLogout />} />
+            <Route path="/register" element={<PublicOnlyRoute><RegisterAndLogout /></PublicOnlyRoute>} />
             <Route path="*" element={<NotFound />} />
             <Route path="/" element={<Home />}/>
 

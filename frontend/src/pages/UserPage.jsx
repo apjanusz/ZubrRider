@@ -318,7 +318,7 @@ function UserPage() {
     return (
         <div className="w-full pb-10">
             {/* Nagłówek profilu */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6 border-t-4 border-zubr-gold">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
                 <div className="bg-zubr-dark h-32 w-full relative">
                     <div className="absolute -bottom-12 left-8">
                         <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-white flex items-center justify-center text-zubr-dark text-3xl font-bold uppercase shadow-md">
