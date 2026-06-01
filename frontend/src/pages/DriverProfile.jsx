@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
+import { useDialog } from "../components/DialogProvider";
 import {
     Star,
     Car,
@@ -17,6 +18,7 @@ function DriverProfile() {
     const [driver, setDriver] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { showNotice } = useDialog();
 
     useEffect(() => {
         const fetchDriver = async () => {
@@ -25,7 +27,11 @@ function DriverProfile() {
                 setDriver(res.data);
             } catch (error) {
                 console.error(error);
-                alert("Nie znaleziono kierowcy.");
+                await showNotice({
+                    title: "Nie znaleziono kierowcy",
+                    message: "Profil kierowcy nie istnieje lub nie jest już dostępny.",
+                    tone: "warning",
+                });
                 navigate("/");
             } finally {
                 setLoading(false);
@@ -43,6 +49,8 @@ function DriverProfile() {
         const last = driver.last_name ? driver.last_name[0] : "";
         return (first + last) || driver.username[0];
     };
+
+    const hasScrollableReviews = driver.reviews.length > 4;
 
     return (
         <div className="w-full pb-10">
@@ -132,10 +140,11 @@ function DriverProfile() {
                         </h2>
 
                         {driver.reviews.length > 0 ? (
-                            <div className="space-y-6 sm:space-y-8">
+                            <div className={`${hasScrollableReviews ? "max-h-[32rem] overflow-y-auto pr-2" : ""}`}>
+                                <div className="space-y-6 sm:space-y-8">
                                 {driver.reviews.map((review, index) => (
-                                    <div key={index} className="border-b border-gray-50 pb-6 last:border-0 last:pb-0 sm:pb-8">
-                                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div key={index} className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4 shadow-sm sm:p-5">
+                                        <div className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${review.comment?.trim() ? "mb-4" : ""}`}>
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
                                                     <User size={18} />
@@ -147,17 +156,20 @@ function DriverProfile() {
                                                 <Star size={14} className="fill-zubr-gold text-zubr-gold" />
                                             </div>
                                         </div>
-                                        <p className="pl-0 text-gray-600 italic leading-relaxed sm:pl-11">
-                                            "{review.comment}"
-                                        </p>
+                                        {review.comment?.trim() && (
+                                            <p className="pl-0 text-gray-600 leading-relaxed sm:pl-11">
+                                                {review.comment}
+                                            </p>
+                                        )}
                                     </div>
                                 ))}
+                                </div>
                             </div>
                         ) : (
                             <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center sm:py-16">
                                 <MessageSquare size={48} className="mx-auto text-gray-200 mb-4" />
                                 <p className="text-gray-500 font-medium">Ten kierowca nie ma jeszcze żadnych opinii.</p>
-                                <p className="text-sm text-gray-400 mt-1">Bądź pierwszym pasażerem, który wystawi recenzję!</p>
+                                {/* <p className="text-sm text-gray-400 mt-1">Bądź pierwszym pasażerem, który wystawi recenzję!</p> */}
                             </div>
                         )}
                     </div>

@@ -8,7 +8,7 @@ from accounts.models import Car, Location, Wallet
 
 class Ride(models.Model):
     driver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rides_as_driver')
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='rides')
+    car = models.ForeignKey(Car, on_delete=models.SET_NULL, related_name='rides', null=True, blank=True)
     start_location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='ride_starts')
     end_location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='ride_ends')
     departure_date = models.DateField()
@@ -19,7 +19,8 @@ class Ride(models.Model):
 
 
     def __str__(self):
-        return f"{self.driver } {self.car} {self.start_location}"
+        car_label = self.car or "brak pojazdu"
+        return f"{self.driver } {car_label} {self.start_location}"
 
 class Stop(models.Model):
     ride = models.ForeignKey(Ride, on_delete=models.CASCADE, related_name='stops')

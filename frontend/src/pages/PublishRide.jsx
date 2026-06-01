@@ -16,6 +16,7 @@ import {
   Route,
   LoaderCircle,
 } from "lucide-react";
+import { useDialog } from "../components/DialogProvider";
 
 function buildAddressQuery(prefix, formData) {
   const rawValue = formData[`${prefix}_address`].trim();
@@ -180,6 +181,21 @@ function splitTimeParts(timeValue) {
   return { hour, minute: minute?.slice(0, 2) || "" };
 }
 
+function isDepartureInPast(dateValue, timeValue) {
+  if (!dateValue || !timeValue) {
+    return false;
+  }
+
+  const normalizedTime = timeValue.length === 5 ? `${timeValue}:00` : timeValue;
+  const departureAt = new Date(`${dateValue}T${normalizedTime}`);
+
+  if (Number.isNaN(departureAt.getTime())) {
+    return false;
+  }
+
+  return departureAt <= new Date();
+}
+
 function TimeDropdown({ label, value, placeholder, options, onSelect }) {
   const [open, setOpen] = useState(false);
 
@@ -226,6 +242,7 @@ function TimeDropdown({ label, value, placeholder, options, onSelect }) {
 
 function PublishRide() {
   const navigate = useNavigate();
+  const { showNotice } = useDialog();
   const [cars, setCars] = useState([]);
   const [loadingCars, setLoadingCars] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -454,6 +471,14 @@ function PublishRide() {
       return;
     }
 
+    if (isDepartureInPast(formData.date, formData.time)) {
+      setFormError(
+        "Data i godzina wyjazdu nie mogą być ustawione w przeszłości."
+      );
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
       car_id: formData.car_id,
       departure_date: formData.date,
@@ -482,7 +507,11 @@ function PublishRide() {
 
     try {
       await api.post("/api/rides/create/", payload);
-      alert("Przejazd dodany pomyślnie!");
+      await showNotice({
+        title: "Przejazd dodany",
+        message: "Przejazd został dodany pomyślnie.",
+        tone: "success",
+      });
       navigate("/my-rides");
     } catch (error) {
       console.error(error);
@@ -535,7 +564,7 @@ function PublishRide() {
     { label: "Jutro", value: toDateInputValue(tomorrow) },
     { label: "Pojutrze", value: toDateInputValue(dayAfterTomorrow) },
   ];
-  const quickTimeOptions = ["06:00", "08:00", "12:00", "18:00"];
+  const quickTimeOptions = ["06:00", "12:00", "18:00"];
   const customHourOptions = Array.from({ length: 24 }, (_, index) =>
     String(index).padStart(2, "0")
   );
@@ -759,6 +788,10 @@ function PublishRide() {
                       required
                       min={toDateInputValue(today)}
                       onChange={handleChange}
+                      onKeyDown={(e) => e.preventDefault()}
+                      onPaste={(e) => e.preventDefault()}
+                      onFocus={(e) => e.target.showPicker?.()}
+                      onClick={(e) => e.target.showPicker?.()}
                       className="w-full p-2.5 border rounded focus:ring-2 focus:ring-zubr-gold outline-none text-sm bg-white"
                     />
                   </div>

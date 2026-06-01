@@ -1,4 +1,5 @@
 import calendar
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import generics
 from rest_framework.views import APIView
@@ -73,7 +74,9 @@ class DriverCardView(APIView):
         from rides.models import Ride
 
         user = request.user
-        today = timezone.now().date()
+        now = timezone.localtime()
+        today = now.date()
+        current_time = now.time()
 
         current_year = today.year
         current_month = today.month
@@ -89,13 +92,18 @@ class DriverCardView(APIView):
             driver=user,
             departure_date__year=current_year,
             departure_date__month=current_month,
+        ).exclude(
+            status="cancelled"
+        ).filter(
+            Q(departure_date__lt=today) |
+            Q(departure_date=today, departure_time__lte=current_time)
         ).count()
 
         rides_last_month = Ride.objects.filter(
             driver=user,
             departure_date__year=prev_year,
             departure_date__month=prev_month,
-        ).count()
+        ).exclude(status="cancelled").count()
 
         eligible = False
         valid_from = None

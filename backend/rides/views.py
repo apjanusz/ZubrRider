@@ -110,3 +110,12 @@ class CancelBookingView(views.APIView):
         ride.save()
 
         return Response({"message": "Rezerwacja została anulowana."}, status=status.HTTP_200_OK)
+
+
+class DeleteRideView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        ride = get_object_or_404(Ride, pk=pk, driver=request.user)
+        ride.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

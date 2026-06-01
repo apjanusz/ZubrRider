@@ -4,6 +4,7 @@ import api from "../api";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Car, MessageSquare, Star } from "lucide-react";
 import DriverCard from "../components/DriverCard";
+import { useDialog } from "../components/DialogProvider";
 
 function MyRides() {
     const navigate = useNavigate();
@@ -17,6 +18,7 @@ function MyRides() {
     const [ratingForm, setRatingForm] = useState({ score: 5, comment: "" });
     const [ratingSubmitting, setRatingSubmitting] = useState(false);
     const [ratingError, setRatingError] = useState("");
+    const { showConfirm, showNotice } = useDialog();
 
     useEffect(() => {
         fetchMyRides();
@@ -53,7 +55,12 @@ function MyRides() {
     };
 
     const handleCancelBooking = async (rideId) => {
-        const confirmCancel = window.confirm("Czy na pewno chcesz zrezygnować z rezerwacji?");
+        const confirmCancel = await showConfirm({
+            title: "Anulować rezerwację?",
+            message: "Czy na pewno chcesz zrezygnować z tej rezerwacji?",
+            confirmLabel: "Tak, anuluj",
+            cancelLabel: "Nie teraz",
+        });
         if (confirmCancel) {
             try {
                 await api.post(`/api/rides/${rideId}/cancel/`);
@@ -62,8 +69,44 @@ function MyRides() {
                     as_passenger: prev.as_passenger.filter(r => r.id !== rideId)
                 }));
             } catch (err) {
-                alert(err.response?.data?.error || "Nie udało się anulować rezerwacji.");
+                await showNotice({
+                    title: "Nie udało się anulować rezerwacji",
+                    message: err.response?.data?.error || "Spróbuj ponownie za chwilę.",
+                    tone: "error",
+                });
             }
+        }
+    };
+
+    const handleDeleteRide = async (rideId) => {
+        const confirmDelete = await showConfirm({
+            title: "Usunąć przejazd?",
+            message: "Czy na pewno chcesz usunąć ten przejazd? Tej operacji nie będzie można cofnąć.",
+            confirmLabel: "Tak, usuń",
+            cancelLabel: "Nie teraz",
+        });
+
+        if (!confirmDelete) {
+            return;
+        }
+
+        try {
+            await api.delete(`/api/rides/${rideId}/delete/`);
+            setRides((prev) => ({
+                ...prev,
+                as_driver: prev.as_driver.filter((ride) => ride.id !== rideId),
+            }));
+            await showNotice({
+                title: "Przejazd usunięty",
+                message: "Przejazd został usunięty.",
+                tone: "success",
+            });
+        } catch (err) {
+            await showNotice({
+                title: "Nie udało się usunąć przejazdu",
+                message: err.response?.data?.error || "Spróbuj ponownie za chwilę.",
+                tone: "error",
+            });
         }
     };
 
@@ -92,7 +135,11 @@ function MyRides() {
 
         try {
             await api.post(`/api/community/rate/${ratingRide.id}/`, ratingForm);
-            alert("Dziękujemy! Ocena została zapisana.");
+            await showNotice({
+                title: "Ocena zapisana",
+                message: "Dziękujemy! Ocena została zapisana.",
+                tone: "success",
+            });
             await fetchMyRides();
             setRatingRide(null);
         } catch (error) {
@@ -123,6 +170,22 @@ function MyRides() {
     const displayedRides = activeTab === "driver" ? upcomingDriver : upcomingPassenger;
     const historyRides = activeTab === "driver" ? pastDriver : pastPassenger;
     const displayedHistory = showAllPast ? historyRides : historyRides.slice(-3);
+    const getDriverDisplayName = (driver) => {
+        if (driver?.username) {
+            return driver.username;
+        }
+
+        const fullName = [driver?.first_name, driver?.last_name].filter(Boolean).join(" ").trim();
+        if (fullName) {
+            return fullName;
+        }
+
+        if (driver?.email) {
+            return driver.email.split("@")[0];
+        }
+
+        return "Nieznany użytkownik";
+    };
 
     return (
         <div className="w-full pb-12">
@@ -167,6 +230,9 @@ function MyRides() {
                             <AnimatePresence mode="popLayout">
                                 {displayedRides.map((ride) => {
                                     const bookedSeats = (ride.car?.seats || 0) - ride.available_seats;
+                                    const carLabel = ride.car ? `${ride.car.brand} ${ride.car.model}` : "Pojazd usunięty";
+                                    const carPlate = ride.car?.license_plate || "Brak danych";
+                                    const totalSeats = ride.car?.seats ?? "-";
 
                                     return (
                                         <motion.div
@@ -195,8 +261,8 @@ function MyRides() {
                                                 <div className="flex flex-col gap-1 text-sm text-gray-600">
                                                     <span className="text-xs font-bold text-gray-400 uppercase">Pojazd</span>
                                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                                        <span className="font-medium">{ride.car?.brand} {ride.car?.model}</span>
-                                                        <span className="w-fit rounded border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs">{ride.car?.license_plate}</span>
+                                                        <span className="font-medium">{carLabel}</span>
+                                                        <span className="w-fit rounded border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs">{carPlate}</span>
                                                     </div>
                                                 </div>
 
@@ -204,7 +270,7 @@ function MyRides() {
                                                     <span className="text-xs font-bold text-gray-500 uppercase">Status rezerwacji</span>
                                                     <div className="flex items-end justify-between gap-3">
                                                         <span className="text-2xl font-bold text-zubr-dark">
-                                                            {bookedSeats} / {ride.car?.seats}
+                                                            {bookedSeats} / {totalSeats}
                                                         </span>
                                                         <span className="text-xs text-gray-400 mb-1">zajętych miejsc</span>
                                                     </div>
@@ -215,6 +281,14 @@ function MyRides() {
                                                 <Link to={`/ride/${ride.id}`} className="flex-1 rounded bg-zubr-dark py-2 text-center font-bold text-white transition hover:bg-green-800">
                                                     Szczegóły
                                                 </Link>
+                                                {activeTab === "driver" && (
+                                                    <button
+                                                        onClick={() => handleDeleteRide(ride.id)}
+                                                        className="flex-1 rounded border border-red-200 bg-red-50 py-2 text-center font-bold text-red-600 transition hover:bg-red-100"
+                                                    >
+                                                        Usuń
+                                                    </button>
+                                                )}
                                                 {activeTab === "passenger" && (
                                                     <button
                                                         onClick={() => handleCancelBooking(ride.id)}
@@ -248,6 +322,20 @@ function MyRides() {
                                     <div className="border-b border-gray-200 bg-white p-4">
                                         <span className="text-lg font-bold text-zubr-dark">{ride.start_location?.city} - {ride.end_location?.city}</span>
                                         <p className="mt-1 text-sm text-gray-500">{ride.departure_date} | {ride.departure_time?.slice(0, 5)}</p>
+                                    </div>
+                                    <div className="border-b border-gray-100 bg-white px-4 py-3">
+                                        <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-400">Kierowca</span>
+                                        <div className="mt-2">
+                                            <Link
+                                                to={`/driver/${ride.driver?.id}`}
+                                                className="inline-flex items-center gap-2 text-sm font-semibold text-zubr-dark transition hover:text-zubr-gold hover:underline"
+                                            >
+                                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zubr-light text-xs font-bold text-zubr-dark">
+                                                    {ride.driver?.first_name?.[0] || ride.driver?.username?.[0] || "?"}
+                                                </span>
+                                                <span>{getDriverDisplayName(ride.driver)}</span>
+                                            </Link>
+                                        </div>
                                     </div>
                                     <div className="flex flex-col gap-3 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="text-left">

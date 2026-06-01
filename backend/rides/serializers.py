@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Ride
@@ -97,6 +100,15 @@ class RideCreateSerializer(serializers.ModelSerializer):
         if car.owner_id != request.user.id:
             raise serializers.ValidationError(
                 {"car_id": "Wybrany pojazd nie należy do użytkownika"}
+            )
+
+        departure_at = timezone.make_aware(
+            datetime.combine(attrs["departure_date"], attrs["departure_time"]),
+            timezone.get_current_timezone(),
+        )
+        if departure_at <= timezone.localtime():
+            raise serializers.ValidationError(
+                {"departure_time": "Data i godzina wyjazdu nie mogą być ustawione w przeszłości."}
             )
         return attrs
 

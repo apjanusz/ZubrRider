@@ -46,6 +46,23 @@ function Home() {
         return matchesFrom && matchesTo && matchesDate;
     });
 
+    const renderDriverRating = (driver) => {
+        const ratingCount = driver?.stats?.rating_count ?? 0;
+        const ratingAvg = driver?.stats?.rating_avg;
+
+        if (ratingCount < 1) {
+            return <span className="text-xs text-gray-500">Brak ocen</span>;
+        }
+
+        return (
+            <span className="flex items-center gap-1 text-xs text-gray-500">
+                <Star size={12} className="fill-zubr-gold text-zubr-gold" />
+                {ratingAvg} / 5
+                <span>({ratingCount})</span>
+            </span>
+        );
+    };
+
     return (
         <div className="flex flex-col gap-6 sm:gap-8">
             {/* Hero Section */}
@@ -175,9 +192,7 @@ function Home() {
                                         </div>
                                         <div>
                                             <p className="text-sm font-bold text-gray-800">{ride.driver?.first_name}</p>
-                                            <p className="text-xs text-gray-500 flex items-center gap-1">
-                                                <Star size={12} className="fill-zubr-gold text-zubr-gold" /> 4.8 / 5
-                                            </p>
+                                            {renderDriverRating(ride.driver)}
                                         </div>
                                     </div>
                                     <div className="text-right">
