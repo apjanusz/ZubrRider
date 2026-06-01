@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -132,6 +133,32 @@ class MyCarsApiTests(APITestCase):
         response = self.client.delete(reverse("delete_car", kwargs={"pk": self.other_car.id}))
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_deleting_car_preserves_related_rides(self):
+        car = Car.objects.create(
+            owner=self.user,
+            brand="Skoda",
+            model="Fabia",
+            license_plate="BI22222",
+            seats=4,
+        )
+        ride = Ride.objects.create(
+            driver=self.user,
+            car=car,
+            start_location=self.create_location("Start"),
+            end_location=self.create_location("Koniec"),
+            departure_date="2026-05-01",
+            departure_time="10:00:00",
+            cost_per_passenger="20.00",
+            available_seats=3,
+            status="active",
+        )
+
+        response = self.client.delete(reverse("delete_car", kwargs={"pk": car.id}))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        ride.refresh_from_db()
+        self.assertIsNone(ride.car)
 
     def test_driver_profile_returns_cars(self):
         car = Car.objects.create(
@@ -307,3 +334,63 @@ class MyCarsApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["stats"]["completed_driver_rides"], 1)
         self.assertEqual(response.data["stats"]["completed_passenger_rides"], 1)
+
+    def test_driver_profile_returns_zero_rating_stats_when_driver_has_no_reviews(self):
+        response = self.client.get(reverse("driver_profile", kwargs={"pk": self.user.id}))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["stats"]["rating_avg"], 0)
+        self.assertEqual(response.data["stats"]["rating_count"], 0)
+
+    @patch("accounts.views.timezone.localtime")
+    def test_driver_card_counts_only_completed_rides_in_current_month(self, mocked_localtime):
+        mocked_localtime.return_value = timezone.make_aware(datetime(2026, 6, 15, 12, 0, 0))
+
+        start_location = self.create_location("Start")
+        end_location = self.create_location("Meta")
+        car = Car.objects.create(
+            owner=self.user,
+            brand="Toyota",
+            model="Yaris",
+            license_plate="BI55555",
+            seats=4,
+        )
+
+        Ride.objects.create(
+            driver=self.user,
+            car=car,
+            start_location=start_location,
+            end_location=end_location,
+            departure_date="2026-06-10",
+            departure_time="08:00:00",
+            cost_per_passenger="20.00",
+            available_seats=3,
+            status="active",
+        )
+        Ride.objects.create(
+            driver=self.user,
+            car=car,
+            start_location=start_location,
+            end_location=end_location,
+            departure_date="2026-06-20",
+            departure_time="08:00:00",
+            cost_per_passenger="20.00",
+            available_seats=3,
+            status="active",
+        )
+        Ride.objects.create(
+            driver=self.user,
+            car=car,
+            start_location=start_location,
+            end_location=end_location,
+            departure_date="2026-06-15",
+            departure_time="18:00:00",
+            cost_per_passenger="20.00",
+            available_seats=3,
+            status="cancelled",
+        )
+
+        response = self.client.get(reverse("driver_card"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["rides_this_month"], 1)
