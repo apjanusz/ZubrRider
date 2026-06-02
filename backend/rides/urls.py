@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RideDetailView, RideCreateView, MyRidesView, RideListView, BookRideView, CancelBookingView
+from .views import RideDetailView, RideCreateView, MyRidesView, RideListView, BookRideView, CancelBookingView, DeleteRideView
 
 urlpatterns = [
     # Listowanie przejazdów
@@ -14,4 +14,6 @@ urlpatterns = [
     path("<int:pk>/book/", BookRideView.as_view(), name="ride_book"),
     # Anulowanie przejazdu
     path("<int:pk>/cancel/", CancelBookingView.as_view(), name="ride_cancel"),
+    # Usunięcie przejazdu przez kierowcę
+    path("<int:pk>/delete/", DeleteRideView.as_view(), name="ride_delete"),
 ]

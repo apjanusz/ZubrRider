@@ -190,3 +190,18 @@ class CreateRatingViewTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("ride", response.data)
+
+    def test_my_rides_marks_completed_unrated_passenger_ride_as_not_rated(self):
+        ride = self.create_ride(timezone.localdate() - timedelta(days=1))
+        Booking.objects.create(
+            ride=ride,
+            passenger=self.passenger,
+            seat_count=1,
+            status="active",
+        )
+
+        response = self.client.get(reverse("my_rides"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["as_passenger"]), 1)
+        self.assertFalse(response.data["as_passenger"][0]["current_user_has_rated"])

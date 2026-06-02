@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute"
 import PublicOnlyRoute from "./components/PublicOnlyRoute"
 import Layout from "./components/Layout"
+import { DialogProvider } from "./components/DialogProvider"
 
 function Logout() {
   localStorage.clear()
@@ -26,36 +27,38 @@ function RegisterAndLogout() {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
+      <DialogProvider>
+        <Routes>
+          <Route element={<Layout />}>
 
-          {/* TRASY WYMAGAJĄCE ZALOGOWANIA */}
+            {/* TRASY WYMAGAJĄCE ZALOGOWANIA */}
 
-          <Route path="/profile" element={
-              <ProtectedRoute><UserPage /></ProtectedRoute>
-          }/>
-          <Route path="/driver/:id" element={
-              <ProtectedRoute><DriverProfile /></ProtectedRoute>
-          }/>
-          <Route path="/ride/:id" element={
-              <ProtectedRoute><RideDetails /></ProtectedRoute>
-          }/>
-          <Route path="/publish-ride" element={
-              <ProtectedRoute><PublishRide /></ProtectedRoute>
-          }/>
-          <Route path="/my-rides" element={
-              <ProtectedRoute><MyRides /></ProtectedRoute>
-          }/>
-          
-          {/* TRASY PUBLICZNE */}
-            <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
-            <Route path="/logout" element={<Logout />} />
-            <Route path="/register" element={<PublicOnlyRoute><RegisterAndLogout /></PublicOnlyRoute>} />
-            <Route path="*" element={<NotFound />} />
-            <Route path="/" element={<Home />}/>
+            <Route path="/profile" element={
+                <ProtectedRoute><UserPage /></ProtectedRoute>
+            }/>
+            <Route path="/driver/:id" element={
+                <ProtectedRoute><DriverProfile /></ProtectedRoute>
+            }/>
+            <Route path="/ride/:id" element={
+                <ProtectedRoute><RideDetails /></ProtectedRoute>
+            }/>
+            <Route path="/publish-ride" element={
+                <ProtectedRoute><PublishRide /></ProtectedRoute>
+            }/>
+            <Route path="/my-rides" element={
+                <ProtectedRoute><MyRides /></ProtectedRoute>
+            }/>
+            
+            {/* TRASY PUBLICZNE */}
+              <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+              <Route path="/logout" element={<Logout />} />
+              <Route path="/register" element={<PublicOnlyRoute><RegisterAndLogout /></PublicOnlyRoute>} />
+              <Route path="*" element={<NotFound />} />
+              <Route path="/" element={<Home />}/>
 
-        </Route>
-      </Routes>
+          </Route>
+        </Routes>
+      </DialogProvider>
     </BrowserRouter>
   )
 }

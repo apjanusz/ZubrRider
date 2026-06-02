@@ -2,12 +2,14 @@ import { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
+import { useDialog } from "../components/DialogProvider";
 
 function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { showNotice } = useDialog();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -26,9 +28,17 @@ function Login() {
         } catch (error) {
             console.log(error);
             if (error.response) {
-                alert("Błąd logowania: " + JSON.stringify(error.response.data));
+                await showNotice({
+                    title: "Błąd logowania",
+                    message: JSON.stringify(error.response.data),
+                    tone: "error",
+                });
             } else {
-                alert("Błąd połączenia z serwerem!");
+                await showNotice({
+                    title: "Błąd połączenia",
+                    message: "Nie udało się połączyć z serwerem.",
+                    tone: "error",
+                });
             }
         } finally {
             setLoading(false);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
+import { useDialog } from "../components/DialogProvider";
 
 const Field = ({ label, name, value, type = "text", disabled = false, width = "w-full", isEditing, onChange, error }) => {
     if (isEditing) {
@@ -47,6 +48,7 @@ function UserPage() {
     const [carDeletingId, setCarDeletingId] = useState(null);
 
     const navigate = useNavigate();
+    const { showNotice } = useDialog();
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -202,7 +204,11 @@ function UserPage() {
                 setProfileErrors(nextServerErrors);
                 return;
             }
-            alert("Błąd podczas zapisywania profilu.");
+            await showNotice({
+                title: "Nie udało się zapisać profilu",
+                message: "Wystąpił błąd podczas zapisywania profilu.",
+                tone: "error",
+            });
         }
     };
 

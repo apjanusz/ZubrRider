@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
+import { useDialog } from "../components/DialogProvider";
 
 function Register() {
     const [username, setUsername] = useState("");
@@ -9,13 +10,18 @@ function Register() {
     const [password2, setPassword2] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { showNotice } = useDialog();
 
     const handleSubmit = async (e) => {
         setLoading(true);
         e.preventDefault();
 
         if (password !== password2) {
-            alert("Hasła muszą być identyczne!");
+            await showNotice({
+                title: "Nieprawidłowe hasła",
+                message: "Hasła muszą być identyczne.",
+                tone: "warning",
+            });
             setLoading(false);
             return;
         }
@@ -33,9 +39,17 @@ function Register() {
         } catch (error) {
             if (error.response) {
                 console.log(error.response.data);
-                alert("Błąd: " + JSON.stringify(error.response.data));
+                await showNotice({
+                    title: "Błąd rejestracji",
+                    message: JSON.stringify(error.response.data),
+                    tone: "error",
+                });
             } else {
-                alert("Błąd połączenia z serwerem!");
+                await showNotice({
+                    title: "Błąd połączenia",
+                    message: "Nie udało się połączyć z serwerem.",
+                    tone: "error",
+                });
             }
         } finally {
             setLoading(false);
